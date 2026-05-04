@@ -16,13 +16,9 @@ env/
 .idea/
 *.iml
 
-# Data & Models (quá nặng cho Git)
-data/*.csv
-data/*.parquet
-models/*.pkl
-models/*.h5
-models/*.keras
-models/*.scaler.pkl
+# Data & Models
+data/
+models/
 
 # Results
 results/*.csv
