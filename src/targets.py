@@ -7,8 +7,9 @@ def make_targets(df):
     # last row will be NaN -> drop before training
     df = df.copy()
     df["y_price"] = df["close"].shift(-1)
-    returns_next = df["close"].shift(-1) / df["close"] - 1
-    df["y_direction"] = (returns_next > 0).astype(int)
+    # y_return is the regression target for tree models — stationary so trees can extrapolate
+    df["y_return"] = df["close"].shift(-1) / df["close"] - 1
+    df["y_direction"] = (df["y_return"] > 0).astype(int)
     return df
 
 

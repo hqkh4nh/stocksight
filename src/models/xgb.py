@@ -7,6 +7,7 @@ from sklearn.metrics import (mean_absolute_error, mean_squared_error,
 from src.config import CFG, MODELS_DIR
 from src.preprocessing import SplitData
 
+
 def train_xgb_regressor(split: SplitData):
     params = CFG["ml"]["xgboost"]
     model = XGBRegressor(
@@ -18,9 +19,12 @@ def train_xgb_regressor(split: SplitData):
         random_state=42,
         n_jobs=-1,
     )
-    model.fit(split.X_train, split.y_price_train)
+    # Train on returns (stationary) instead of raw price — trees can't extrapolate
+    model.fit(split.X_train, split.y_return_train)
 
-    y_pred = model.predict(split.X_test)
+    pred_return = model.predict(split.X_test)
+    y_pred = split.close_test * (1 + pred_return)
+
     metrics = {
         "test_mae": mean_absolute_error(split.y_price_test, y_pred),
         "test_rmse": np.sqrt(mean_squared_error(split.y_price_test, y_pred)),
@@ -32,17 +36,12 @@ def train_xgb_regressor(split: SplitData):
 
 def train_xgb_classifier(split: SplitData):
     params = CFG["ml"]["xgboost"]
-    n_neg = (split.y_direction_train == 0).sum()
-    n_pos = (split.y_direction_train == 1).sum()
-    spw = n_neg / n_pos
-
     model = XGBClassifier(
         n_estimators=params["n_estimators"],
         max_depth=params["max_depth"],
         learning_rate=params["learning_rate"],
         subsample=params["subsample"],
         colsample_bytree=params["colsample_bytree"],
-        scale_pos_weight=spw,
         eval_metric="logloss",
         random_state=42,
         n_jobs=-1,

@@ -13,8 +13,12 @@ class SplitData:
     X_test: np.ndarray
     y_price_train: np.ndarray
     y_price_test: np.ndarray
+    y_return_train: np.ndarray
+    y_return_test: np.ndarray
     y_direction_train: np.ndarray
     y_direction_test: np.ndarray
+    close_train: np.ndarray
+    close_test: np.ndarray
     feature_names: list
     scaler: StandardScaler
     train_dates: pd.Series
@@ -26,14 +30,18 @@ def prepare_ml_data(df: pd.DataFrame, train_ratio: float = 0.80) -> SplitData:
 
     X = df[FEATURE_COLUMNS].values
     y_price = df["y_price"].values
+    y_return = df["y_return"].values
     y_direction = df["y_direction"].values
+    close = df["close"].values
     dates = df["date"]
 
     # Chronological split - DO NOT SHUFFLE
     split_idx = int(len(df) * train_ratio)
     X_train_raw, X_test_raw = X[:split_idx], X[split_idx:]
     y_price_train, y_price_test = y_price[:split_idx], y_price[split_idx:]
+    y_ret_train, y_ret_test = y_return[:split_idx], y_return[split_idx:]
     y_dir_train, y_dir_test = y_direction[:split_idx], y_direction[split_idx:]
+    close_train, close_test = close[:split_idx], close[split_idx:]
     train_dates, test_dates = dates[:split_idx], dates[split_idx:]
 
     # fit ONLY on train to avoid leakage
@@ -46,8 +54,12 @@ def prepare_ml_data(df: pd.DataFrame, train_ratio: float = 0.80) -> SplitData:
         X_test=X_test,
         y_price_train=y_price_train,
         y_price_test=y_price_test,
+        y_return_train=y_ret_train,
+        y_return_test=y_ret_test,
         y_direction_train=y_dir_train,
         y_direction_test=y_dir_test,
+        close_train=close_train,
+        close_test=close_test,
         feature_names=FEATURE_COLUMNS,
         scaler=scaler,
         train_dates=train_dates,
@@ -76,4 +88,6 @@ if __name__ == "__main__":
     print(f"train: {len(split.X_train)} ({split.train_dates.min().date()} - {split.train_dates.max().date()})")
     print(f"test:  {len(split.X_test)} ({split.test_dates.min().date()} - {split.test_dates.max().date()})")
     print(f"X_train mean/std: {split.X_train.mean():.4f} / {split.X_train.std():.4f}")
+    print(f"y_return train range: {split.y_return_train.min():.4f} - {split.y_return_train.max():.4f}")
+    print(f"y_return test  range: {split.y_return_test.min():.4f} - {split.y_return_test.max():.4f}")
     print(f"y_direction up%: {split.y_direction_train.mean():.3f}")

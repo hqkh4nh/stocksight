@@ -1,10 +1,12 @@
 import joblib
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.metrics import (mean_squared_error, mean_absolute_error, accuracy_score, f1_score, roc_auc_score)
+from sklearn.metrics import (mean_squared_error, mean_absolute_error,
+                             accuracy_score, f1_score, roc_auc_score)
 
 from src.config import CFG, MODELS_DIR
 from src.preprocessing import SplitData
+
 
 def train_rf_regressor(split: SplitData):
     params = CFG["ml"]["random_forest"]
@@ -15,9 +17,12 @@ def train_rf_regressor(split: SplitData):
         random_state=42,
         n_jobs=-1,
     )
-    model.fit(split.X_train, split.y_price_train)
+    # Train on returns (stationary) instead of raw price — trees can't extrapolate
+    model.fit(split.X_train, split.y_return_train)
 
-    y_pred = model.predict(split.X_test)
+    pred_return = model.predict(split.X_test)
+    y_pred = split.close_test * (1 + pred_return)
+
     metrics = {
         "test_mae": mean_absolute_error(split.y_price_test, y_pred),
         "test_rmse": np.sqrt(mean_squared_error(split.y_price_test, y_pred)),
@@ -26,13 +31,13 @@ def train_rf_regressor(split: SplitData):
     }
     return model, y_pred, metrics
 
+
 def train_rf_classifier(split: SplitData):
     params = CFG["ml"]["random_forest"]
     model = RandomForestClassifier(
         n_estimators=params["n_estimators"],
         max_depth=params["max_depth"],
         min_samples_split=params["min_samples_split"],
-        class_weight="balanced",
         random_state=42,
         n_jobs=-1,
     )
@@ -48,9 +53,11 @@ def train_rf_classifier(split: SplitData):
     }
     return model, y_pred, y_proba, metrics
 
+
 def save_rf_models(ticker, rf_reg, rf_clf):
     joblib.dump(rf_reg, MODELS_DIR / f"{ticker}_rf_reg.pkl")
     joblib.dump(rf_clf, MODELS_DIR / f"{ticker}_rf_clf.pkl")
+
 
 if __name__ == "__main__":
     from src.preprocessing import prepare_pipeline
