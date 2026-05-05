@@ -17,8 +17,8 @@ env/
 *.iml
 
 # Data & Models
-data/
-models/
+/data/
+/models/
 
 # Results
 results/*.csv
