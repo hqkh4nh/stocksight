@@ -27,8 +27,9 @@ ml:
     class_weight: "balanced"
   random_forest:
     n_estimators: 200
-    max_depth: 10
+    max_depth: 6
     min_samples_split: 5
+    class_weight: "balanced"
   xgboost:
     n_estimators: 300
     max_depth: 6

@@ -38,6 +38,7 @@ def train_rf_classifier(split: SplitData):
         n_estimators=params["n_estimators"],
         max_depth=params["max_depth"],
         min_samples_split=params["min_samples_split"],
+        class_weight=params.get("class_weight"),
         random_state=42,
         n_jobs=-1,
     )
