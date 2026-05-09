@@ -1,22 +1,41 @@
-# StockSight — Configuration File
+# StockSight v2 — Configuration File
 
 data:
-  start_date: "2015-01-01"
+  start_date: "1990-01-01"
   cache_dir: "data"
 
 tickers:
-  - AAPL    # Apple - Tech
-  - MSFT    # Microsoft - Tech
-  - NVDA    # NVIDIA - Tech
-  - AMZN    # Amazon - E-commerce
-  - TSLA    # Tesla - Auto
-  - JPM     # JPMorgan - Finance
-  - KO      # Coca-Cola - Consumer
-  - JNJ     # Johnson & Johnson - Healthcare
+  - NDSN    # Nordson - Industrial
+  - HON     # Honeywell - Industrial
+  - BKR     # Baker Hughes - Energy
+  - APA     # APA Corp - Energy
+  - CSX     # CSX - Transport/Industrial
+  - JBHT    # J.B. Hunt - Transport/Industrial
+  - FAST    # Fastenal - Industrial
+  - FELE    # Franklin Electric - Industrial
+  - GT      # Goodyear - Consumer Disc
+  - FITB    # Fifth Third - Financial
+  - NTRS    # Northern Trust - Financial
+  - EA      # Electronic Arts - Tech/Media
+  - AEP     # American Electric Power - Utility
+  - AMGN    # Amgen - Healthcare
+  - COST    # Costco - Consumer Disc
+  - ROST    # Ross Stores - Consumer Disc
+  - PEP     # PepsiCo - Consumer Staples
+  - KMB     # Kimberly-Clark - Consumer Staples
+  - MAT     # Mattel - Consumer Disc
+  - HAS     # Hasbro - Consumer Disc
+  - NWL     # Newell Brands - Consumer Disc
+
+macro_indices:
+  - "^VIX"
+  - "^TNX"
+  - "CL=F"
+  - "DX-Y.NYB"
 
 # Train/test split
 split:
-  train_ratio: 0.80
+  train_ratio: 0.85
 
 # Hyperparameters
 ml:
@@ -37,7 +56,32 @@ ml:
     subsample: 0.8
     colsample_bytree: 0.8
 
+dl:
+  window: 60                    # lookback (days per encoder input)
+  horizon: 14                   # forecast horizon (days predicted by decoder)
+  epochs: 100
+  batch_size: 32
+  learning_rate: 0.0005
+  clipnorm: 1.0
+  patience: 15                  # EarlyStopping
+  reduce_lr_patience: 5
+  reduce_lr_factor: 0.5
+  min_lr: 0.00001
+  val_split: 0.1                # last 10% of train, time-aware
+  seed: 42
+  conv_filters_1: 128
+  conv_filters_2: 64
+  bilstm_units: 128
+  decoder_lstm_units: 256
+  td_dense_units: 64
+  dropout: 0.2
+
+backtest:
+  threshold: 0.005              # 0.5% cumulative 14d return threshold for LONG/SHORT signal
+  position_size: equal_weight
+
 # Paths
 paths:
   models_dir: "models"
   results_dir: "results"
+  data_raw_dir: "data/raw"
