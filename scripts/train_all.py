@@ -9,11 +9,13 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.baselines import all_baselines
 from src.config import CFG, RESULTS_DIR
 from src.evaluate import dl_metrics_14d
 from src.models.dl_model import save_dl_model, train_dl
 from src.models.ml_model import (save_ml_models, train_logistic, train_rf,
-                                  train_ridge, train_xgb)
+                                  train_rf_reg, train_ridge, train_xgb,
+                                  train_xgb_reg)
 from src.preprocessing import build_macro_df, prepare_dl_pipeline_v2
 
 
@@ -22,10 +24,15 @@ def train_one_ticker(ticker: str, macro_df: pd.DataFrame) -> dict:
     dl, split = prepare_dl_pipeline_v2(ticker, macro_df)
 
     ridge, _, m_r = train_ridge(split)
+    rf_reg, _, m_rf_reg = train_rf_reg(split)
+    xgb_reg, _, m_xgb_reg = train_xgb_reg(split)
     log, _, _, m_l = train_logistic(split)
     rf, _, _, m_rf = train_rf(split)
     xgb, _, _, m_x = train_xgb(split)
-    save_ml_models(ticker, ridge, log, rf, xgb, split.scaler_X)
+    save_ml_models(ticker, ridge, log, rf, xgb, split.scaler_X,
+                   rf_reg=rf_reg, xgb_reg=xgb_reg)
+
+    base = all_baselines(split)
 
     dl_model, hist = train_dl(dl, verbose=0)
     save_dl_model(ticker, dl_model)
@@ -34,7 +41,11 @@ def train_one_ticker(ticker: str, macro_df: pd.DataFrame) -> dict:
     elapsed = time.time() - t0
     return {
         "ticker": ticker,
-        "ridge": m_r, "logistic": m_l, "rf": m_rf, "xgb": m_x, "dl": m_dl,
+        "ridge": m_r, "rf_reg": m_rf_reg, "xgb_reg": m_xgb_reg,
+        "logistic": m_l, "rf": m_rf, "xgb": m_x, "dl": m_dl,
+        "naive_zero": base["naive_zero"],
+        "naive_persistence": base["naive_persistence"],
+        "majority": base["majority"],
         "epochs_run": len(hist.history["loss"]),
         "elapsed_sec": round(elapsed, 1),
     }
@@ -53,7 +64,9 @@ def main():
             print(f"  FAILED: {e}", flush=True)
             failed.append((tkr, str(e)))
             continue
-        for model_name in ["ridge", "logistic", "rf", "xgb"]:
+        for model_name in ["ridge", "rf_reg", "xgb_reg",
+                           "logistic", "rf", "xgb",
+                           "naive_zero", "naive_persistence", "majority"]:
             row = {"ticker": tkr, "model": model_name, **r[model_name]}
             ml_rows.append(row)
         dl_rows.append({"ticker": tkr, "epochs": r["epochs_run"],
