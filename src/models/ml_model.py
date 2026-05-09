@@ -48,6 +48,7 @@ def train_xgb_reg(split: SplitData):
         n_estimators=p["n_estimators"], max_depth=p["max_depth"],
         learning_rate=p["learning_rate"], subsample=p["subsample"],
         colsample_bytree=p["colsample_bytree"],
+        tree_method="hist",
         random_state=42, n_jobs=-1,
     )
     model.fit(split.X_train, split.y_return_train)
@@ -80,10 +81,15 @@ def train_rf(split: SplitData):
 
 def train_xgb(split: SplitData):
     p = CFG["ml"]["xgboost"]
+    pos = int((split.y_direction_train == 1).sum())
+    neg = int((split.y_direction_train == 0).sum())
+    spw = neg / max(pos, 1)
     model = XGBClassifier(
         n_estimators=p["n_estimators"], max_depth=p["max_depth"],
         learning_rate=p["learning_rate"], subsample=p["subsample"],
         colsample_bytree=p["colsample_bytree"], eval_metric="logloss",
+        scale_pos_weight=spw,
+        tree_method="hist",
         random_state=42, n_jobs=-1,
     )
     model.fit(split.X_train, split.y_direction_train)

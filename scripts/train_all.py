@@ -9,6 +9,9 @@ from pathlib import Path
 
 import pandas as pd
 
+import src._tf_quiet  # noqa: F401  — must run before TF import
+import tensorflow as tf
+
 from src.baselines import all_baselines
 from src.config import CFG, RESULTS_DIR
 from src.evaluate import dl_metrics_14d
@@ -20,6 +23,8 @@ from src.preprocessing import build_macro_df, prepare_dl_pipeline_v2
 
 
 def train_one_ticker(ticker: str, macro_df: pd.DataFrame) -> dict:
+    # Release prior ticker's TF graph + variables so GPU memory doesn't accumulate
+    tf.keras.backend.clear_session()
     t0 = time.time()
     dl, split = prepare_dl_pipeline_v2(ticker, macro_df)
 

@@ -69,7 +69,11 @@ def build_macro_df() -> pd.DataFrame:
     return out
 
 
-def prepare_ml_split(df: pd.DataFrame, feat_cols: list, train_ratio: float) -> SplitData:
+def prepare_ml_split(df: pd.DataFrame, feat_cols: list, train_ratio: float,
+                     split_idx: int = None) -> SplitData:
+    """Build the 1-day tabular split. If `split_idx` is given, use it directly so the ML
+    test set begins on the SAME row as the first DL test anchor — making baseline
+    comparisons strictly apples-to-apples. Otherwise fall back to `train_ratio`."""
     df = df.sort_values("date").reset_index(drop=True)
     X = df[feat_cols].values.astype(np.float32)
     y_return = df["y_return"].values.astype(np.float32)
@@ -78,7 +82,9 @@ def prepare_ml_split(df: pd.DataFrame, feat_cols: list, train_ratio: float) -> S
     dates = df["date"]
 
     n = len(df)
-    split_idx = int(n * train_ratio)
+    if split_idx is None:
+        split_idx = int(n * train_ratio)
+    split_idx = max(1, min(split_idx, n - 1))
 
     scaler_X = MinMaxScaler()
     X_train = scaler_X.fit_transform(X[:split_idx])
@@ -164,8 +170,10 @@ def build_dl_sequences(df: pd.DataFrame, feat_cols: list, window: int, horizon: 
         horizon=horizon,
     )
 
-    # Also build the simpler ML split (1-day target) using same train ratio on the row-level df
-    split = prepare_ml_split(df, feat_cols, train_ratio)
+    # Sync ML split with DL anchors: ML test begins on the same row as the first DL test anchor.
+    # First test anchor row = valid_idx[n_train]; that row's `y_return` (next-day) is the ML target.
+    ml_split_idx = int(valid_idx[n_train]) if n_train < len(valid_idx) else int(valid_idx[-1])
+    split = prepare_ml_split(df, feat_cols, train_ratio, split_idx=ml_split_idx)
     return dl, split
 
 

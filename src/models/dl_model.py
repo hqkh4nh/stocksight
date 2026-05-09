@@ -49,10 +49,16 @@ def set_seed(seed: int = 42) -> None:
 
 
 def directional_loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
-    """MSE with 1.5× penalty when predicted sign differs from true sign."""
+    """MSE with 1.5× penalty only when sign(y_true) and sign(y_pred) are *truly* opposite.
+
+    `tf.sign(0) == 0`, so the previous `tf.equal(sign(y_true), sign(y_pred))` would punish
+    cases where one side was exactly 0 — over-penalising a near-perfect prediction. We test
+    `sign(y_true) * sign(y_pred) < 0` instead so the penalty triggers only on opposite-sign
+    pairs (zero on either side ⇒ product 0 ⇒ no penalty).
+    """
     err2 = tf.square(y_true - y_pred)
-    same_sign = tf.equal(tf.sign(y_true), tf.sign(y_pred))
-    penalty = tf.where(same_sign, 1.0, 1.5)
+    opposite = tf.less(tf.sign(y_true) * tf.sign(y_pred), 0.0)
+    penalty = tf.where(opposite, 1.5, 1.0)
     return tf.reduce_mean(penalty * err2)
 
 
