@@ -1,8 +1,11 @@
+"""Feature engineering: common technicals + macro changes + sector-aware correlations."""
 import numpy as np
 import pandas as pd
 
+from src.sector_config import sector_for, OIL_CORR_SECTORS, RATE_CORR_SECTORS
 
-# === Price & Returns ===
+
+# === Group A: common technical (15 features) ===
 
 def add_returns(df):
     df = df.copy()
@@ -18,73 +21,103 @@ def add_lag_features(df):
     return df
 
 
-# === Moving averages ===
-
 def add_moving_averages(df):
     df = df.copy()
-    df["ma_5"] = df["close"].rolling(window=5).mean()
-    df["ma_20"] = df["close"].rolling(window=20).mean()
+    df["ma_5"] = df["close"].rolling(5).mean()
+    df["ma_20"] = df["close"].rolling(20).mean()
     df["ema_12"] = df["close"].ewm(span=12, adjust=False).mean()
     df["ema_26"] = df["close"].ewm(span=26, adjust=False).mean()
     return df
 
 
-# === Momentum ===
-
 def add_rsi(df, period=14):
     df = df.copy()
     delta = df["close"].diff()
-    gain = delta.where(delta > 0, 0).rolling(window=period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+    gain = delta.where(delta > 0, 0).rolling(period).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(period).mean()
     rs = gain / loss
     df["rsi_14"] = 100 - (100 / (1 + rs))
     return df
 
 
 def add_macd(df):
-    # needs ema_12 and ema_26 already computed
     df = df.copy()
     df["macd"] = df["ema_12"] - df["ema_26"]
     df["macd_signal"] = df["macd"].ewm(span=9, adjust=False).mean()
     return df
 
 
-# === Volatility & volume ===
-
 def add_volatility(df, window=21):
     df = df.copy()
-    df["volatility_21"] = df["returns"].rolling(window=window).std()
+    df["volatility_21"] = df["returns"].rolling(window).std()
     return df
 
 
 def add_bollinger_bands(df, window=20, num_std=2.0):
     df = df.copy()
-    bb_mid = df["close"].rolling(window=window).mean()
-    bb_std = df["close"].rolling(window=window).std()
-    bb_upper = bb_mid + num_std * bb_std
-    bb_lower = bb_mid - num_std * bb_std
-    df["bb_width"] = (bb_upper - bb_lower) / bb_mid
+    bb_mid = df["close"].rolling(window).mean()
+    bb_std = df["close"].rolling(window).std()
+    df["bb_width"] = ((bb_mid + num_std * bb_std) - (bb_mid - num_std * bb_std)) / bb_mid
     return df
 
 
 def add_volume_ratio(df, window=20):
     df = df.copy()
-    volume_ma = df["volume"].rolling(window=window).mean()
-    df["volume_ratio"] = df["volume"] / volume_ma
+    df["volume_ratio"] = df["volume"] / df["volume"].rolling(window).mean()
     return df
 
 
-FEATURE_COLUMNS = [
+# === Group B: macro changes (4 features, joined from macro df dict) ===
+
+def add_macro_features(df, macro_df):
+    """macro_df is a single dataframe with cols: date, vix_change, tnx_change, oil_change, usd_change."""
+    df = df.copy()
+    return df.merge(macro_df, on="date", how="left")
+
+
+# === Group C: sector-aware correlations (1-2 features) ===
+
+def add_oil_correlation(df, oil_returns, window=21):
+    """Stock_Oil_Corr_21 + Vol_x_Oil. Requires oil_returns Series aligned to df.date."""
+    df = df.copy()
+    df["stock_oil_corr_21"] = df["returns"].rolling(window).corr(oil_returns)
+    df["vol_x_oil"] = df["volatility_21"] * oil_returns.abs()
+    return df
+
+
+def add_rate_correlation(df, rate_returns, window=21):
+    """Stock_Rate_Corr_21 only."""
+    df = df.copy()
+    df["stock_rate_corr_21"] = df["returns"].rolling(window).corr(rate_returns)
+    return df
+
+
+# === Public API ===
+
+FEATURE_COLUMNS_BASE = [
     "close", "returns", "log_returns", "close_lag_1", "close_lag_5",
     "ma_5", "ma_20", "ema_12", "ema_26",
     "rsi_14", "macd", "macd_signal",
     "volatility_21", "bb_width", "volume_ratio",
 ]
 
+MACRO_COLUMNS = ["vix_change", "tnx_change", "oil_change", "usd_change"]
 
-def compute_features(df):
-    # Order matters: macd needs ema, volatility needs returns
-    df = df.copy().sort_values("date").reset_index(drop=True)
+
+def feature_columns(ticker: str) -> list[str]:
+    """Final ordered feature list for this ticker (drops 'close' since it's the price target reference)."""
+    cols = [c for c in FEATURE_COLUMNS_BASE if c != "close"] + MACRO_COLUMNS
+    sector = sector_for(ticker)
+    if sector in OIL_CORR_SECTORS:
+        cols += ["stock_oil_corr_21", "vol_x_oil"]
+    elif sector in RATE_CORR_SECTORS:
+        cols += ["stock_rate_corr_21"]
+    return cols
+
+
+def compute_features(stock_df: pd.DataFrame, macro_df: pd.DataFrame, ticker: str) -> pd.DataFrame:
+    """Apply all feature groups. macro_df must have cols: date, vix_change, tnx_change, oil_change, usd_change."""
+    df = stock_df.copy().sort_values("date").reset_index(drop=True)
     df = add_returns(df)
     df = add_lag_features(df)
     df = add_moving_averages(df)
@@ -93,17 +126,28 @@ def compute_features(df):
     df = add_volatility(df, window=21)
     df = add_bollinger_bands(df, window=20, num_std=2.0)
     df = add_volume_ratio(df, window=20)
+    df = add_macro_features(df, macro_df)
+
+    sector = sector_for(ticker)
+    if sector in OIL_CORR_SECTORS:
+        df = add_oil_correlation(df, df["oil_change"], window=21)
+    elif sector in RATE_CORR_SECTORS:
+        df = add_rate_correlation(df, df["tnx_change"], window=21)
+
     return df
 
 
 if __name__ == "__main__":
-    from src.data import load_cached
+    from src.data_loader import load_stock, load_all_macro
 
-    df = load_cached("AAPL")
-    df_feat = compute_features(df)
-    df_clean = df_feat.dropna()
+    macro = load_all_macro()
+    macro_df = macro["vix"][["date"]].copy()
+    macro_df["vix_change"] = macro["vix"]["close"].pct_change()
+    macro_df["tnx_change"] = macro["tnx"]["close"].pct_change()
+    macro_df["oil_change"] = macro["oil"]["close"].pct_change()
+    macro_df["usd_change"] = macro["usd"]["close"].pct_change()
 
-    print("before:", df.shape, "after:", df_feat.shape, "clean:", df_clean.shape)
-    print("rsi range:", round(df_clean["rsi_14"].min(), 2), "-", round(df_clean["rsi_14"].max(), 2))
-    print("returns mean:", round(df_clean["returns"].mean(), 6))
-    print("volume_ratio mean:", round(df_clean["volume_ratio"].mean(), 4))
+    stock = load_stock("BKR")
+    feats = compute_features(stock, macro_df, ticker="BKR")
+    feats = feats.dropna()
+    print(f"BKR: {feats.shape}  cols={feature_columns('BKR')}")
