@@ -56,6 +56,16 @@ def directional_loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
     return tf.reduce_mean(penalty * err2)
 
 
+def bounded_return(x: tf.Tensor) -> tf.Tensor:
+    """Constrain daily-return prediction to [-10%, +10%] to prevent runaway compounding.
+
+    Without this, an unbounded linear output can drift to ~+20% per day during training
+    (observed on COST), making 14-day cumprod prices diverge by 1000%+. A 10% daily band
+    covers virtually all real US-stock daily moves while keeping gradients well-conditioned.
+    """
+    return tf.tanh(x) * 0.1
+
+
 def build_seq2seq_attention(
     window: int,
     n_features: int,
@@ -109,7 +119,7 @@ def build_seq2seq_attention(
     # merged shape: (B, horizon, decoder_lstm_units + bilstm_units*2)
 
     out = TimeDistributed(Dense(cfg["td_dense_units"], activation="relu"), name="td_dense")(merged)
-    out = TimeDistributed(Dense(1, activation="linear"), name="return_out")(out)
+    out = TimeDistributed(Dense(1, activation=bounded_return), name="return_out")(out)
     # out shape: (B, horizon, 1)
 
     model = Model(inputs=inputs, outputs=out, name="seq2seq_attention")

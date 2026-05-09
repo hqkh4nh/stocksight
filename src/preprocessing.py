@@ -39,20 +39,21 @@ class SplitData:
 
 @dataclass
 class DLData:
-    """Sequence split for DL (14-day return seq target)."""
+    """Sequence split for DL (14-day return seq target).
+
+    Targets are RAW returns (typically ~ N(0, 0.02)) — kept unscaled so the
+    sign-aware directional_loss can actually penalise wrong-sign predictions.
+    """
     X_train_seq: np.ndarray             # (N, 60, n_features) scaled
     X_test_seq: np.ndarray
-    y_return_seq_train: np.ndarray      # (N, 14, 1) scaled returns
-    y_return_seq_test: np.ndarray
-    y_return_seq_train_raw: np.ndarray  # unscaled, for inverse later
-    y_return_seq_test_raw: np.ndarray
+    y_return_seq_train: np.ndarray      # (N, 14, 1) RAW returns
+    y_return_seq_test: np.ndarray       # (N, 14, 1) RAW returns
     close_anchor_train: np.ndarray      # (N,) close price at end of input window
     close_anchor_test: np.ndarray
     train_target_dates: pd.Series       # date of last predicted day t+14 for each sequence
     test_target_dates: pd.Series
     feature_names: list
     scaler_X: MinMaxScaler
-    scaler_y: MinMaxScaler
     window: int
     horizon: int
 
@@ -127,50 +128,38 @@ def build_dl_sequences(df: pd.DataFrame, feat_cols: list, window: int, horizon: 
     scaler_X = MinMaxScaler()
     scaler_X.fit(df.iloc[train_feat_rows][feat_cols].values.astype(np.float32))
 
-    train_return_targets = []
-    for i in train_anchor_indices:
-        train_return_targets.append(df["returns"].iloc[i + 1: i + 1 + horizon].values)
-    scaler_y = MinMaxScaler()
-    scaler_y.fit(np.array(train_return_targets, dtype=np.float32).reshape(-1, 1))
-
-    # Build sequences for ALL valid anchors
+    # Build sequences for ALL valid anchors. Targets are RAW returns.
     X_full = scaler_X.transform(df[feat_cols].values.astype(np.float32))
     n_features = X_full.shape[1]
 
     X_seq = np.zeros((len(valid_idx), window, n_features), dtype=np.float32)
-    y_ret_seq_raw = np.zeros((len(valid_idx), horizon, 1), dtype=np.float32)
-    y_ret_seq_scaled = np.zeros((len(valid_idx), horizon, 1), dtype=np.float32)
+    y_ret_seq = np.zeros((len(valid_idx), horizon, 1), dtype=np.float32)
     close_anchor = np.zeros(len(valid_idx), dtype=np.float32)
     target_dates = []
     for k, i in enumerate(valid_idx):
         X_seq[k] = X_full[i - window + 1: i + 1]
         future_returns = df["returns"].iloc[i + 1: i + 1 + horizon].values.astype(np.float32)
-        y_ret_seq_raw[k, :, 0] = future_returns
-        y_ret_seq_scaled[k, :, 0] = scaler_y.transform(future_returns.reshape(-1, 1)).ravel()
+        y_ret_seq[k, :, 0] = future_returns
         close_anchor[k] = df["close"].iloc[i]
         target_dates.append(df["date"].iloc[i + horizon])
 
     target_dates = pd.Series(target_dates).reset_index(drop=True)
 
-    # Persist scalers
+    # Persist X scaler only (no scaler_y — targets are raw)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     joblib.dump(scaler_X, MODELS_DIR / f"{ticker}_scaler_X.joblib")
-    joblib.dump(scaler_y, MODELS_DIR / f"{ticker}_scaler_y.joblib")
 
     dl = DLData(
         X_train_seq=X_seq[:n_train],
         X_test_seq=X_seq[n_train:],
-        y_return_seq_train=y_ret_seq_scaled[:n_train],
-        y_return_seq_test=y_ret_seq_scaled[n_train:],
-        y_return_seq_train_raw=y_ret_seq_raw[:n_train],
-        y_return_seq_test_raw=y_ret_seq_raw[n_train:],
+        y_return_seq_train=y_ret_seq[:n_train],
+        y_return_seq_test=y_ret_seq[n_train:],
         close_anchor_train=close_anchor[:n_train],
         close_anchor_test=close_anchor[n_train:],
         train_target_dates=target_dates.iloc[:n_train].reset_index(drop=True),
         test_target_dates=target_dates.iloc[n_train:].reset_index(drop=True),
         feature_names=feat_cols,
         scaler_X=scaler_X,
-        scaler_y=scaler_y,
         window=window,
         horizon=horizon,
     )

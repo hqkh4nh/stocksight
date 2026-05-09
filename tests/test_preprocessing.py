@@ -40,3 +40,19 @@ def test_85_15_split_ratio(aapl_pipeline):
     n_test = len(split.X_test)
     ratio = n_train / (n_train + n_test)
     assert 0.83 < ratio < 0.87
+
+
+def test_dl_targets_are_raw_returns(aapl_pipeline):
+    """Regression: scaler_y previously squashed targets into [0,1], hiding negatives
+    from directional_loss. Targets must remain raw returns (with negative values)."""
+    dl, _ = aapl_pipeline
+    y_train = dl.y_return_seq_train
+    assert (y_train < 0).any(), "Train targets must contain negative returns"
+    assert (y_train > 0).any(), "Train targets must contain positive returns"
+    assert abs(y_train).max() < 1.0, "Returns should be small (<100% per day)"
+
+
+def test_dl_data_no_scaler_y(aapl_pipeline):
+    """DLData must not carry scaler_y once raw returns are used."""
+    dl, _ = aapl_pipeline
+    assert not hasattr(dl, "scaler_y") or dl.scaler_y is None

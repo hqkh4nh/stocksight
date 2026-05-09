@@ -15,9 +15,11 @@ def add_returns(df):
 
 
 def add_lag_features(df):
+    """Relative (stationary) close lags: today vs N days ago, expressed as % change.
+    Replaces raw price-level lags which were OOD on the test set after the long backfill."""
     df = df.copy()
-    df["close_lag_1"] = df["close"].shift(1)
-    df["close_lag_5"] = df["close"].shift(5)
+    df["close_pct_lag_1"] = df["close"] / df["close"].shift(1) - 1
+    df["close_pct_lag_5"] = df["close"] / df["close"].shift(5) - 1
     return df
 
 
@@ -95,7 +97,7 @@ def add_rate_correlation(df, rate_returns, window=21):
 # === Public API ===
 
 FEATURE_COLUMNS_BASE = [
-    "close", "returns", "log_returns", "close_lag_1", "close_lag_5",
+    "close", "returns", "log_returns", "close_pct_lag_1", "close_pct_lag_5",
     "ma_5", "ma_20", "ema_12", "ema_26",
     "rsi_14", "macd", "macd_signal",
     "volatility_21", "bb_width", "volume_ratio",

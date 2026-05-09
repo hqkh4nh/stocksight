@@ -1,7 +1,7 @@
 """Evaluation: 14-day metrics for DL.
 
-DL outputs are scaled returns (0..1) — must inverse-transform via scaler_y, then
-convert to prices via close_anchor x cumprod(1 + returns).
+DL outputs are RAW returns (no scaler_y) — convert to prices via
+close_anchor x cumprod(1 + returns).
 """
 import numpy as np
 from sklearn.metrics import (accuracy_score, f1_score, mean_absolute_error,
@@ -15,10 +15,8 @@ def dl_metrics_14d(model, dl: DLData) -> dict:
 
     All metrics aggregated over the 14-day horizon (per-day flattened, plus a t+14 long-horizon dir_acc).
     """
-    pred_scaled = model.predict(dl.X_test_seq, verbose=0)            # (N, 14, 1)
-    pred_returns = dl.scaler_y.inverse_transform(
-        pred_scaled.reshape(-1, 1)).reshape(pred_scaled.shape)        # (N, 14, 1)
-    true_returns = dl.y_return_seq_test_raw                           # (N, 14, 1)
+    pred_returns = model.predict(dl.X_test_seq, verbose=0)            # (N, 14, 1) raw
+    true_returns = dl.y_return_seq_test                               # (N, 14, 1) raw
 
     close_anchor = dl.close_anchor_test                               # (N,)
     pred_prices = _returns_to_prices(close_anchor, pred_returns[..., 0])
