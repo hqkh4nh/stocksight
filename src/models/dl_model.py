@@ -1,4 +1,4 @@
-"""DL model v2: CNN+BiLSTM Encoder + RepeatVector + LSTM Decoder + Attention.
+"""DL model: CNN+BiLSTM Encoder + RepeatVector + LSTM Decoder + Attention.
 
 Architecture:
   Input (B, window, n_features)
@@ -136,7 +136,7 @@ def train_dl(dl: DLData, verbose: int = 0) -> tuple:
     """Train the seq2seq model on DLData.
 
     Args:
-        dl:      DLData object (from prepare_dl_pipeline_v2)
+        dl:      DLData object (from prepare_dl_pipeline)
         verbose: Keras verbosity (0=silent, 1=progress bar, 2=one line/epoch)
 
     Returns:
@@ -193,12 +193,12 @@ def save_dl_model(ticker: str, model: Model) -> None:
 
 
 if __name__ == "__main__":
-    from src.preprocessing import build_macro_df, prepare_dl_pipeline_v2
+    from src.preprocessing import build_macro_df, prepare_dl_pipeline
 
     ticker = "BKR"
     print(f"Loading pipeline for {ticker}...")
     macro_df = build_macro_df()
-    dl, _split = prepare_dl_pipeline_v2(ticker, macro_df)
+    dl, _split = prepare_dl_pipeline(ticker, macro_df)
     print(f"  X_train_seq: {dl.X_train_seq.shape}  y_train: {dl.y_return_seq_train.shape}")
 
     print("Training model (verbose=1)...")

@@ -17,7 +17,7 @@ from sklearn.preprocessing import MinMaxScaler
 from src.config import CFG, MODELS_DIR
 from src.data_loader import load_stock, load_all_macro
 from src.features import compute_features, feature_columns
-from src.targets import make_targets_v2
+from src.targets import make_targets
 
 
 @dataclass
@@ -177,12 +177,12 @@ def build_dl_sequences(df: pd.DataFrame, feat_cols: list, window: int, horizon: 
     return dl, split
 
 
-def prepare_dl_pipeline_v2(ticker: str, macro_df: pd.DataFrame,
-                           window: int = 60, horizon: int = 14,
-                           train_ratio: float = 0.85) -> tuple[DLData, SplitData]:
+def prepare_dl_pipeline(ticker: str, macro_df: pd.DataFrame,
+                        window: int = 60, horizon: int = 14,
+                        train_ratio: float = 0.85) -> tuple[DLData, SplitData]:
     stock = load_stock(ticker)
     feats = compute_features(stock, macro_df, ticker=ticker)
-    feats = make_targets_v2(feats)
+    feats = make_targets(feats)
     feats = feats.dropna().reset_index(drop=True)
     feat_cols = feature_columns(ticker)
     return build_dl_sequences(feats, feat_cols, window, horizon, train_ratio, ticker)
@@ -191,5 +191,5 @@ def prepare_dl_pipeline_v2(ticker: str, macro_df: pd.DataFrame,
 if __name__ == "__main__":
     macro_df = build_macro_df()
     for tkr in CFG["tickers"][:3]:
-        dl, split = prepare_dl_pipeline_v2(tkr, macro_df)
+        dl, split = prepare_dl_pipeline(tkr, macro_df)
         print(f"{tkr}: X_train_seq={dl.X_train_seq.shape}  y_seq_train={dl.y_return_seq_train.shape}")

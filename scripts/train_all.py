@@ -28,14 +28,14 @@ from src.models.dl_model import save_dl_model, train_dl
 from src.models.ml_model import (save_ml_models, train_logistic, train_rf,
                                   train_rf_reg, train_ridge, train_xgb,
                                   train_xgb_reg)
-from src.preprocessing import build_macro_df, prepare_dl_pipeline_v2
+from src.preprocessing import build_macro_df, prepare_dl_pipeline
 
 
 def train_one_ticker(ticker: str, macro_df: pd.DataFrame) -> dict:
     # Release prior ticker's TF graph + variables so GPU memory doesn't accumulate
     tf.keras.backend.clear_session()
     t0 = time.time()
-    dl, split = prepare_dl_pipeline_v2(ticker, macro_df)
+    dl, split = prepare_dl_pipeline(ticker, macro_df)
 
     ridge, _, m_r = train_ridge(split)
     rf_reg, _, m_rf_reg = train_rf_reg(split)

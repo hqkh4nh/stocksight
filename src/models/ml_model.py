@@ -182,9 +182,9 @@ def recursive_forecast_14(model, last_features_row: np.ndarray, feat_cols: list 
 
 
 if __name__ == "__main__":
-    from src.preprocessing import prepare_dl_pipeline_v2, build_macro_df
+    from src.preprocessing import prepare_dl_pipeline, build_macro_df
     macro_df = build_macro_df()
-    _, split = prepare_dl_pipeline_v2("BKR", macro_df)
+    _, split = prepare_dl_pipeline("BKR", macro_df)
 
     ridge, _, m_r = train_ridge(split)
     log, _, _, m_l = train_logistic(split)

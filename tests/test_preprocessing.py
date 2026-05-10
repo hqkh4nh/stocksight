@@ -2,14 +2,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.preprocessing import prepare_dl_pipeline_v2, build_macro_df
+from src.preprocessing import prepare_dl_pipeline, build_macro_df
 
 
 @pytest.fixture(scope="module")
 def aapl_pipeline():
     # Use BKR (already cached by Task 2.2 smoke run)
     macro_df = build_macro_df()
-    return prepare_dl_pipeline_v2("BKR", macro_df, window=60, horizon=14, train_ratio=0.85)
+    return prepare_dl_pipeline("BKR", macro_df, window=60, horizon=14, train_ratio=0.85)
 
 
 def test_window_horizon_shapes(aapl_pipeline):

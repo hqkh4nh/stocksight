@@ -10,7 +10,7 @@ import numpy as np
 import tensorflow as tf
 
 from src.models.dl_model import bounded_return, directional_loss
-from src.preprocessing import build_macro_df, prepare_dl_pipeline_v2
+from src.preprocessing import build_macro_df, prepare_dl_pipeline
 
 TICKERS = ["BKR", "COST", "FITB"]
 
@@ -29,7 +29,7 @@ def main():
     macro = build_macro_df()
     for tkr in TICKERS:
         print(f"\n{'='*70}\n{tkr}\n{'='*70}")
-        dl, _ = prepare_dl_pipeline_v2(tkr, macro)
+        dl, _ = prepare_dl_pipeline(tkr, macro)
         model = load_model(tkr)
         pred = model.predict(dl.X_test_seq, verbose=0)[..., 0]      # (N, 14)
         true = dl.y_return_seq_test[..., 0]                          # (N, 14)

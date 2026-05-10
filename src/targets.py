@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def make_targets_v2(df: pd.DataFrame) -> pd.DataFrame:
+def make_targets(df: pd.DataFrame) -> pd.DataFrame:
     """1-day-ahead targets for ML.
 
     DL targets (14-day return seq) are computed dynamically inside build_dl_sequences,
@@ -13,16 +13,10 @@ def make_targets_v2(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# Keep old function for backward compat during migration
-def make_targets(df: pd.DataFrame) -> pd.DataFrame:
-    return make_targets_v2(df)
-
-
 if __name__ == "__main__":
-    from src.data import load_cached
-    from src.features import compute_features
+    from src.data_loader import load_stock
 
-    df = load_cached("AAPL")
+    df = load_stock("AAPL")
     df = make_targets(df).dropna()
 
     print("shape:", df.shape)
