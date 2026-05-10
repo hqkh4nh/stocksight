@@ -7,19 +7,11 @@ import joblib
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Ridge, LogisticRegression
-from sklearn.metrics import (accuracy_score, f1_score, mean_absolute_error,
-                             mean_squared_error, roc_auc_score)
 from xgboost import XGBClassifier, XGBRegressor
 
 from src.config import CFG, MODELS_DIR
+from src.metrics import clf_metrics, reg_metrics
 from src.preprocessing import SplitData
-
-
-def _reg_metrics(y_true, y_pred):
-    return {
-        "test_mae_return": float(mean_absolute_error(y_true, y_pred)),
-        "test_rmse_return": float(np.sqrt(mean_squared_error(y_true, y_pred))),
-    }
 
 
 def train_ridge(split: SplitData):
@@ -27,7 +19,7 @@ def train_ridge(split: SplitData):
     model = Ridge(alpha=p["alpha"], random_state=42)
     model.fit(split.X_train, split.y_return_train)
     y_pred = model.predict(split.X_test)
-    return model, y_pred, _reg_metrics(split.y_return_test, y_pred)
+    return model, y_pred, reg_metrics(split.y_return_test, y_pred)
 
 
 def train_rf_reg(split: SplitData):
@@ -39,7 +31,7 @@ def train_rf_reg(split: SplitData):
     )
     model.fit(split.X_train, split.y_return_train)
     y_pred = model.predict(split.X_test)
-    return model, y_pred, _reg_metrics(split.y_return_test, y_pred)
+    return model, y_pred, reg_metrics(split.y_return_test, y_pred)
 
 
 def train_xgb_reg(split: SplitData):
@@ -53,7 +45,7 @@ def train_xgb_reg(split: SplitData):
     )
     model.fit(split.X_train, split.y_return_train)
     y_pred = model.predict(split.X_test)
-    return model, y_pred, _reg_metrics(split.y_return_test, y_pred)
+    return model, y_pred, reg_metrics(split.y_return_test, y_pred)
 
 
 def train_logistic(split: SplitData):
@@ -63,7 +55,7 @@ def train_logistic(split: SplitData):
     model.fit(split.X_train, split.y_direction_train)
     y_pred = model.predict(split.X_test)
     y_proba = model.predict_proba(split.X_test)[:, 1]
-    return model, y_pred, y_proba, _clf_metrics(split.y_direction_test, y_pred, y_proba)
+    return model, y_pred, y_proba, clf_metrics(split.y_direction_test, y_pred, y_proba)
 
 
 def train_rf(split: SplitData):
@@ -76,7 +68,7 @@ def train_rf(split: SplitData):
     model.fit(split.X_train, split.y_direction_train)
     y_pred = model.predict(split.X_test)
     y_proba = model.predict_proba(split.X_test)[:, 1]
-    return model, y_pred, y_proba, _clf_metrics(split.y_direction_test, y_pred, y_proba)
+    return model, y_pred, y_proba, clf_metrics(split.y_direction_test, y_pred, y_proba)
 
 
 def train_xgb(split: SplitData):
@@ -95,15 +87,7 @@ def train_xgb(split: SplitData):
     model.fit(split.X_train, split.y_direction_train)
     y_pred = model.predict(split.X_test)
     y_proba = model.predict_proba(split.X_test)[:, 1]
-    return model, y_pred, y_proba, _clf_metrics(split.y_direction_test, y_pred, y_proba)
-
-
-def _clf_metrics(y_true, y_pred, y_proba):
-    return {
-        "test_accuracy": float(accuracy_score(y_true, y_pred)),
-        "test_f1": float(f1_score(y_true, y_pred, zero_division=0)),
-        "test_roc_auc": float(roc_auc_score(y_true, y_proba)),
-    }
+    return model, y_pred, y_proba, clf_metrics(split.y_direction_test, y_pred, y_proba)
 
 
 def save_ml_models(ticker: str, ridge, logistic, rf, xgb, scaler_X,
