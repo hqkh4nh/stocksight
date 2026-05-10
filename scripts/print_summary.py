@@ -21,29 +21,17 @@ def print_tables(ml_csv: Path, dl_csv: Path):
 
     print("\n" + "=" * 78)
     print(f"REGRESSION (return) - source: {ml_csv.name}")
-    print("Lower MAE/RMSE is better. A model losing to naive_zero learned nothing useful.")
+    print("Lower MAE is better. mae_vs_naive_ratio < 1.0 means model beats naive_zero.")
     print("=" * 78)
-    reg = ml_df[ml_df["model"].isin(["ridge", "rf_reg", "xgb_reg",
-                                       "naive_zero", "naive_persistence"])]
-    if not reg.empty:
-        for metric in ["test_mae_return", "test_rmse_return"]:
-            pivot = reg.pivot(index="model", columns="ticker", values=metric)
-            pivot = pivot.reindex(["naive_zero", "naive_persistence",
-                                    "ridge", "rf_reg", "xgb_reg"]).dropna(how="all")
+    if not ml_df.empty:
+        for metric in ["test_mae_return", "mae_vs_naive_ratio", "directional_accuracy"]:
+            if metric not in ml_df.columns:
+                continue
+            pivot = ml_df.pivot(index="model", columns="ticker", values=metric)
+            order = ["naive_zero", "naive_persistence", "ridge", "rf_reg", "xgb_reg"]
+            pivot = pivot.reindex([m for m in order if m in pivot.index])
             print(f"\n{metric}:")
             print(pivot.round(5).to_string())
-
-    print("\n" + "=" * 78)
-    print("CLASSIFICATION (direction) - higher is better. Compare to majority baseline.")
-    print("=" * 78)
-    clf = ml_df[ml_df["model"].isin(["logistic", "rf", "xgb", "majority"])]
-    for metric in ["test_accuracy", "test_f1", "test_roc_auc"]:
-        if metric not in clf.columns:
-            continue
-        pivot = clf.pivot(index="model", columns="ticker", values=metric)
-        pivot = pivot.reindex(["majority", "logistic", "rf", "xgb"]).dropna(how="all")
-        print(f"\n{metric}:")
-        print(pivot.round(4).to_string())
 
     if not dl_df.empty:
         print("\n" + "=" * 78)
@@ -51,9 +39,11 @@ def print_tables(ml_csv: Path, dl_csv: Path):
         print("dir_accuracy > 0.50 means the model learned direction.")
         print("=" * 78)
         cols = ["ticker", "epochs", "elapsed_sec",
+                "test_mae_price_d1", "test_mae_price_d7", "test_mae_price_d14",
                 "test_mae_price_14d", "test_mape_price_14d",
                 "test_dir_accuracy_perday", "test_dir_f1_perday",
-                "test_dir_accuracy_t14"]
+                "test_dir_accuracy_t14",
+                "train_loss_final", "val_loss_final"]
         cols = [c for c in cols if c in dl_df.columns]
         print()
         print(dl_df[cols].round(4).to_string(index=False))
