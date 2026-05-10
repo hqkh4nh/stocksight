@@ -34,11 +34,16 @@ def test_scaler_fit_train_only(aapl_pipeline):
 
 
 def test_85_15_split_ratio(aapl_pipeline):
+    """ML train+val should be ~85% of (train+val+test); val is ~10% of train+val."""
     dl, split = aapl_pipeline
     n_train = len(split.X_train)
+    n_val = len(split.X_val)
     n_test = len(split.X_test)
-    ratio = n_train / (n_train + n_test)
+    train_plus_val = n_train + n_val
+    ratio = train_plus_val / (train_plus_val + n_test)
     assert 0.83 < ratio < 0.87
+    val_ratio = n_val / train_plus_val
+    assert 0.08 < val_ratio < 0.12
 
 
 def test_dl_targets_are_raw_returns(aapl_pipeline):

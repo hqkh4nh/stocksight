@@ -75,6 +75,8 @@ dl:
   decoder_lstm_units: 256
   td_dense_units: 64
   dropout: 0.2
+  direction_penalty: 3.0        # multiplier on squared error when sign(y_true)*sign(y_pred) < 0
+  return_cap: 0.05              # tanh output cap; daily returns rarely exceed 5%
 
 backtest:
   threshold: 0.005              # 0.5% cumulative 14d return threshold for LONG/SHORT signal
