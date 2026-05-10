@@ -21,8 +21,7 @@ env/
 /models/
 
 # Results
-results/*.csv
-results/*.json
+/results/
 
 # OS
 .DS_Store
