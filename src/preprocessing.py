@@ -1,10 +1,6 @@
-"""Preprocessing: build feature dataframes, split chronologically, slide windows for DL.
+"""Preprocessing: build features, chronological split, sliding windows for DL.
 
-Key choices:
-- MinMaxScaler (not StandardScaler) per reference, separate scalers for X and y
-- Scalers fit on TRAIN ONLY then transform test (anti-leak)
-- Sliding window lookback=60, horizon=14
-- DL output shape (N, 14, 1) for return seq target
+MinMaxScaler fit on train only. Window=60, horizon=14, DL output shape (N, 14, 1).
 """
 from dataclasses import dataclass
 from pathlib import Path
@@ -40,8 +36,7 @@ class SplitData:
 class DLData:
     """Sequence split for DL (14-day return seq target).
 
-    Targets are RAW returns (typically ~ N(0, 0.02)) — kept unscaled so the
-    sign-aware directional_loss can actually penalise wrong-sign predictions.
+    RAW returns kept unscaled so directional_loss can penalise wrong sign.
     """
     X_train_seq: np.ndarray             # (N, 60, n_features) scaled
     X_test_seq: np.ndarray
@@ -70,9 +65,11 @@ def build_macro_df() -> pd.DataFrame:
 
 def prepare_ml_split(df: pd.DataFrame, feat_cols: list, train_ratio: float,
                      split_idx: int = None) -> SplitData:
-    """Build the 1-day tabular split. If `split_idx` is given, use it directly so the ML
-    test set begins on the SAME row as the first DL test anchor — making baseline
-    comparisons strictly apples-to-apples. Otherwise fall back to `train_ratio`."""
+    """Build the 1-day tabular split.
+
+    If `split_idx` is given, use it so ML test starts on the same row as the
+    first DL test anchor. Otherwise fall back to `train_ratio`.
+    """
     df = df.sort_values("date").reset_index(drop=True)
     X = df[feat_cols].values.astype(np.float32)
     y_return = df["y_return"].values.astype(np.float32)

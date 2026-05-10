@@ -1,11 +1,4 @@
-"""Smoke-test on 3 diverse tickers after the post-mortem fixes.
-
-Pass criteria:
-  - DL test_dir_accuracy_perday > 0.50 on at least 2/3 tickers
-  - Pipeline runs end-to-end without exceptions
-
-Outputs results/smoke_summary.csv (ml + baselines) and results/smoke_dl.csv.
-"""
+"""Smoke-test on a few tickers; pass = dl_dir_acc > 0.50 on at least 2."""
 import time
 from pathlib import Path
 
@@ -15,7 +8,7 @@ from scripts.train_all import train_one_ticker
 from src.config import RESULTS_DIR
 from src.preprocessing import build_macro_df
 
-SMOKE_TICKERS = ["COST", "FITB"]  # consumer disc (was MAPE 130%), financial
+SMOKE_TICKERS = ["COST", "FITB"]  # consumer disc + financial
 
 
 def main():
@@ -52,7 +45,6 @@ def main():
         for t, e in failed:
             print(f"  {t}: {e}")
 
-    # Quick verdict for the smoke gate
     if dl_rows:
         passed = sum(1 for d in dl_rows if d["test_dir_accuracy_perday"] > 0.50)
         print(f"\nSmoke gate: {passed}/{len(dl_rows)} tickers with dl_dir_acc > 0.50")
@@ -61,14 +53,14 @@ def main():
 
 
 def print_summary(ml_rows, dl_rows):
-    """Print a side-by-side comparison table per ticker so the smoke run is self-explanatory."""
+    """Print side-by-side comparison tables per ticker."""
     if not ml_rows:
         return
     ml_df = pd.DataFrame(ml_rows)
     dl_df = pd.DataFrame(dl_rows) if dl_rows else pd.DataFrame()
 
     print("\n" + "=" * 78)
-    print("REGRESSION (return) — lower MAE/RMSE is better. Compare ML vs naive baselines.")
+    print("REGRESSION (return) - lower MAE/RMSE is better. Compare ML vs naive baselines.")
     print("=" * 78)
     reg = ml_df[ml_df["model"].isin(["ridge", "rf_reg", "xgb_reg",
                                        "naive_zero", "naive_persistence"])]
@@ -79,7 +71,7 @@ def print_summary(ml_rows, dl_rows):
     print(reg_pivot.round(5).to_string())
 
     print("\n" + "=" * 78)
-    print("CLASSIFICATION (direction) — higher acc/F1/AUC is better. Compare to majority.")
+    print("CLASSIFICATION (direction) - higher acc/F1/AUC is better. Compare to majority.")
     print("=" * 78)
     clf = ml_df[ml_df["model"].isin(["logistic", "rf", "xgb", "majority"])]
     for metric in ["test_accuracy", "test_f1", "test_roc_auc"]:
@@ -92,7 +84,7 @@ def print_summary(ml_rows, dl_rows):
 
     if not dl_df.empty:
         print("\n" + "=" * 78)
-        print("DL seq2seq — 14-day metrics. dir_acc > 0.50 means it learned direction.")
+        print("DL seq2seq - 14-day metrics. dir_acc > 0.50 means it learned direction.")
         print("=" * 78)
         cols = ["ticker", "epochs", "elapsed_sec",
                 "test_mae_price_14d", "test_mape_price_14d",

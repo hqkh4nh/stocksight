@@ -1,10 +1,10 @@
 """Train all 5 model types (Ridge, Logistic, RF, XGB, DL) on all 21 tickers.
 
 Outputs:
-  results/ml_summary.csv     — 1-day metrics per ticker per ML model (incremental)
-  results/dl_summary.csv     — 14-day metrics per ticker (incremental)
-  results/run_metadata.json  — timestamp + git SHA + GPU info
-  results/failed.txt         — tickers that errored (with traceback)
+  results/ml_summary.csv     - 1-day metrics per ticker per ML model (incremental)
+  results/dl_summary.csv     - 14-day metrics per ticker (incremental)
+  results/run_metadata.json  - timestamp + git SHA + GPU info
+  results/failed.txt         - tickers that errored (with traceback)
 
 CSVs are flushed after every ticker so a crash mid-run never loses prior work.
 """
@@ -31,7 +31,7 @@ def train_one_ticker(ticker: str, macro_df: pd.DataFrame) -> dict:
                                      train_xgb_reg)
     from src.preprocessing import prepare_dl_pipeline
 
-    # Release prior ticker's TF graph + variables so GPU memory doesn't accumulate
+    # Free prior ticker's TF graph so GPU memory doesn't accumulate
     tf.keras.backend.clear_session()
     t0 = time.time()
     dl, split = prepare_dl_pipeline(ticker, macro_df)
@@ -63,7 +63,7 @@ def train_one_ticker(ticker: str, macro_df: pd.DataFrame) -> dict:
         "elapsed_sec": round(elapsed, 1),
     }
 
-    # Free Python refs so the next ticker doesn't accumulate hundreds of MB of arrays
+    # Free Python refs so the next ticker doesn't accumulate arrays
     del dl, split, dl_model, hist, ridge, rf_reg, xgb_reg, log, rf, xgb, base
     gc.collect()
 
@@ -96,8 +96,8 @@ def _write_metadata(start_iso: str, total_sec: float, n_done: int, n_failed: int
 
 
 def main():
-    import src._tf_quiet  # noqa: F401  — must run before TF import
-    import tensorflow as tf  # noqa: F401  — pre-loaded so per-ticker import is a cache hit
+    import src._tf_quiet  # noqa: F401  - must run before TF import
+    import tensorflow as tf  # noqa: F401  - pre-loaded so per-ticker import is cache hit
     from src.preprocessing import build_macro_df
 
     macro_df = build_macro_df()
@@ -148,7 +148,7 @@ def main():
     print(f"Saved: {RESULTS_DIR}/dl_summary.csv ({len(dl_rows)} rows)")
     print(f"Saved: {RESULTS_DIR}/run_metadata.json")
     if failed:
-        print(f"\nFailed tickers ({len(failed)}) — see {RESULTS_DIR}/failed.txt:")
+        print(f"\nFailed tickers ({len(failed)}) - see {RESULTS_DIR}/failed.txt:")
         for f in failed:
             print(f"  {f['ticker']}: {f['error']}")
 

@@ -1,5 +1,4 @@
-"""Regression test: ensure RF/XGB regression trainers exist and return MAE/RMSE keys.
-Restores trainers lost in commit 4689fd7 (consolidated ML refactor)."""
+"""Regression test: RF/XGB regression trainers return MAE/RMSE keys."""
 import numpy as np
 import pytest
 

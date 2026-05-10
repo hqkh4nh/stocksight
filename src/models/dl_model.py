@@ -13,7 +13,7 @@ Architecture:
   → TimeDistributed(Dense(64, relu))
   → TimeDistributed(Dense(1, linear))                 (B, 14, 1)
 
-Loss: directional_loss — penalises wrong-sign predictions 1.5× vs 1.0×.
+Loss: directional_loss - penalises wrong-sign predictions 1.5x vs 1.0x.
 """
 import random
 
@@ -49,12 +49,9 @@ def set_seed(seed: int = 42) -> None:
 
 
 def directional_loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
-    """MSE with 1.5× penalty only when sign(y_true) and sign(y_pred) are *truly* opposite.
+    """MSE with 1.5x penalty when sign(y_true) and sign(y_pred) are opposite.
 
-    `tf.sign(0) == 0`, so the previous `tf.equal(sign(y_true), sign(y_pred))` would punish
-    cases where one side was exactly 0 — over-penalising a near-perfect prediction. We test
-    `sign(y_true) * sign(y_pred) < 0` instead so the penalty triggers only on opposite-sign
-    pairs (zero on either side ⇒ product 0 ⇒ no penalty).
+    Uses `sign(y_true) * sign(y_pred) < 0` so a zero on either side does not trigger.
     """
     err2 = tf.square(y_true - y_pred)
     opposite = tf.less(tf.sign(y_true) * tf.sign(y_pred), 0.0)
@@ -63,12 +60,7 @@ def directional_loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
 
 
 def bounded_return(x: tf.Tensor) -> tf.Tensor:
-    """Constrain daily-return prediction to [-10%, +10%] to prevent runaway compounding.
-
-    Without this, an unbounded linear output can drift to ~+20% per day during training
-    (observed on COST), making 14-day cumprod prices diverge by 1000%+. A 10% daily band
-    covers virtually all real US-stock daily moves while keeping gradients well-conditioned.
-    """
+    """Constrain daily-return prediction to [-10%, +10%] to prevent runaway compounding."""
     return tf.tanh(x) * 0.1
 
 
@@ -78,17 +70,9 @@ def build_seq2seq_attention(
     horizon: int,
     cfg: dict,
 ) -> Model:
-    """Build CNN+BiLSTM encoder → RepeatVector → LSTM decoder → Attention model.
+    """Build CNN+BiLSTM encoder -> RepeatVector -> LSTM decoder -> Attention.
 
-    Args:
-        window:     lookback length (e.g. 60)
-        n_features: number of input features
-        horizon:    forecast steps (e.g. 14)
-        cfg:        dict with keys conv_filters_1, conv_filters_2, bilstm_units,
-                    decoder_lstm_units, td_dense_units, dropout
-
-    Returns:
-        Compiled Keras Model with output shape (B, horizon, 1).
+    Output shape: (B, horizon, 1).
     """
     dropout_rate = cfg["dropout"]
 
@@ -133,15 +117,7 @@ def build_seq2seq_attention(
 
 
 def train_dl(dl: DLData, verbose: int = 0) -> tuple:
-    """Train the seq2seq model on DLData.
-
-    Args:
-        dl:      DLData object (from prepare_dl_pipeline)
-        verbose: Keras verbosity (0=silent, 1=progress bar, 2=one line/epoch)
-
-    Returns:
-        (model, history)
-    """
+    """Train the seq2seq model on DLData. Returns (model, history)."""
     cfg = CFG["dl"]
     set_seed(cfg["seed"])
 

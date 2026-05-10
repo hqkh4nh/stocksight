@@ -1,8 +1,4 @@
-"""Consolidated ML trainers: Ridge, Logistic, RF, XGB.
-
-Plus recursive_forecast_14 wrapper reserved for Streamlit (deferred).
-Offline eval uses 1-day metrics only.
-"""
+"""ML trainers: Ridge, Logistic, RF, XGB, plus recursive_forecast_14."""
 import joblib
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -107,23 +103,11 @@ def save_ml_models(ticker: str, ridge, logistic, rf, xgb, scaler_X,
 
 def recursive_forecast_14(model, last_features_row: np.ndarray, feat_cols: list = None,
                           scaler_X=None, horizon: int = 14) -> np.ndarray:
-    """Predict `horizon`-step returns by feeding each prediction back into time-dependent features.
+    """Predict horizon-step returns by feeding predictions back into lag features.
 
-    Updates after each step: `returns`, `log_returns`, `close_pct_lag_1`, `close_pct_lag_5`.
-    Other features (RSI, MACD, MA, volatility, macro, sector corrs) are held constant — an
-    intentional approximation: short-horizon recursion (~14 days) makes the moving-average drift
-    second-order, while building exact handcrafted-feature update kernels would push scope.
-
-    Args:
-        model:              fitted sklearn-style estimator with .predict(X)
-        last_features_row:  (n_features,) UNSCALED feature vector for anchor day
-        feat_cols:          ordered list[str] matching last_features_row positions.
-                            If None, falls back to legacy behaviour (no lag updates).
-        scaler_X:           optional fitted MinMaxScaler — if provided, applied before model.predict.
-        horizon:            number of steps to roll forward.
-
-    Returns:
-        np.ndarray (horizon,) of predicted 1-day returns.
+    Updates `returns`, `log_returns`, `close_pct_lag_1`, `close_pct_lag_5` after each step.
+    Other features (RSI, MACD, MA, volatility, macro, sector corrs) held constant.
+    If `feat_cols` is None, falls back to legacy behaviour (no lag updates).
     """
     feat_raw = last_features_row.astype(float).copy()
     preds = []
@@ -136,8 +120,7 @@ def recursive_forecast_14(model, last_features_row: np.ndarray, feat_cols: list 
         return np.array(preds)
 
     idx = {c: i for i, c in enumerate(feat_cols)}
-    # Maintain rolling window of last 5 returns to recompute close_pct_lag_5
-    # Seed with current 1-day lag if available, else 0
+    # Rolling window of last 5 returns for close_pct_lag_5; seed from current 1-day lag.
     recent = [feat_raw[idx["close_pct_lag_1"]]] * 5 if "close_pct_lag_1" in idx else [0.0] * 5
 
     for _ in range(horizon):
@@ -158,7 +141,6 @@ def recursive_forecast_14(model, last_features_row: np.ndarray, feat_cols: list 
         if "close_pct_lag_1" in idx:
             feat_raw[idx["close_pct_lag_1"]] = r_pred
         if "close_pct_lag_5" in idx:
-            # Cumulative 5-day return from rolling window
             cum5 = float(np.prod([1 + r for r in recent]) - 1)
             feat_raw[idx["close_pct_lag_5"]] = cum5
 

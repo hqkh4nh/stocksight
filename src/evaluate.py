@@ -1,7 +1,6 @@
 """Evaluation: 14-day metrics for DL.
 
-DL outputs are RAW returns (no scaler_y) — convert to prices via
-close_anchor x cumprod(1 + returns).
+DL outputs are RAW returns; convert to prices via close_anchor * cumprod(1 + returns).
 """
 import numpy as np
 from sklearn.metrics import (accuracy_score, f1_score, mean_absolute_error,
@@ -11,10 +10,7 @@ from src.preprocessing import DLData
 
 
 def dl_metrics_14d(model, dl: DLData) -> dict:
-    """Compute MAE/RMSE/MAPE on price + directional acc/f1 from sign of returns.
-
-    All metrics aggregated over the 14-day horizon (per-day flattened, plus a t+14 long-horizon dir_acc).
-    """
+    """MAE/RMSE/MAPE on price + directional acc/f1 over the 14-day horizon."""
     pred_returns = model.predict(dl.X_test_seq, verbose=0)            # (N, 14, 1) raw
     true_returns = dl.y_return_seq_test                               # (N, 14, 1) raw
 

@@ -1,12 +1,8 @@
-"""Naive baselines used as a sanity floor for ML/DL models.
+"""Naive baselines as sanity floor for ML/DL.
 
-A model that beats a naive baseline by a meaningful margin actually learns; a model
-that loses to it has no business being shipped to a defence committee.
-
-Baselines:
-- naive_zero        : predict 0 return tomorrow (drift-free random walk)
-- naive_persistence : predict tomorrow == today's return (momentum-of-1)
-- majority_class    : predict the most common direction in train (drift-aware)
+- naive_zero        : predict 0 return tomorrow
+- naive_persistence : predict tomorrow == today's return
+- majority_class    : predict the most common train direction
 """
 import numpy as np
 

@@ -29,8 +29,7 @@ def test_scaler_fit_train_only(aapl_pipeline):
     dl, split = aapl_pipeline
     # X_train should be in [0, 1] approximately (MinMaxScaler fitted on train)
     assert 0.0 - 1e-6 <= dl.X_train_seq.min() <= dl.X_train_seq.max() <= 1.0 + 1e-6
-    # X_test may exceed [0,1] — that's expected (regime shift) and proves no leak
-    # Just check it's not all zeros
+    # X_test may exceed [0,1] (regime shift); just check it's not all zeros
     assert dl.X_test_seq.std() > 0
 
 
@@ -43,8 +42,7 @@ def test_85_15_split_ratio(aapl_pipeline):
 
 
 def test_dl_targets_are_raw_returns(aapl_pipeline):
-    """Regression: scaler_y previously squashed targets into [0,1], hiding negatives
-    from directional_loss. Targets must remain raw returns (with negative values)."""
+    """Targets must remain raw returns (negatives included), not scaled into [0,1]."""
     dl, _ = aapl_pipeline
     y_train = dl.y_return_seq_train
     assert (y_train < 0).any(), "Train targets must contain negative returns"

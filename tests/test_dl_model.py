@@ -23,9 +23,7 @@ def test_directional_loss_higher_when_sign_wrong():
 
 
 def test_directional_loss_kicks_in_with_negative_targets():
-    """Regression: scaler_y previously made all y_true >= 0, disabling the penalty.
-    With raw returns (negative truths possible), the penalty must trigger.
-    Use mirror predictions with identical |residual| so the only difference is the sign-penalty."""
+    """Penalty must trigger when y_true is negative and pred has opposite sign."""
     y_true = tf.constant([[-0.01]])
     y_pred_right_sign = tf.constant([[-0.03]])  # sign matches, residual = +0.02
     y_pred_wrong_sign = tf.constant([[0.01]])   # sign flipped, residual = -0.02 (same |err|)

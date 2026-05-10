@@ -20,7 +20,7 @@ def print_tables(ml_csv: Path, dl_csv: Path):
     dl_df = pd.read_csv(dl_csv) if dl_csv.exists() else pd.DataFrame()
 
     print("\n" + "=" * 78)
-    print(f"REGRESSION (return) — source: {ml_csv.name}")
+    print(f"REGRESSION (return) - source: {ml_csv.name}")
     print("Lower MAE/RMSE is better. A model losing to naive_zero learned nothing useful.")
     print("=" * 78)
     reg = ml_df[ml_df["model"].isin(["ridge", "rf_reg", "xgb_reg",
@@ -34,7 +34,7 @@ def print_tables(ml_csv: Path, dl_csv: Path):
             print(pivot.round(5).to_string())
 
     print("\n" + "=" * 78)
-    print("CLASSIFICATION (direction) — higher is better. Compare to majority baseline.")
+    print("CLASSIFICATION (direction) - higher is better. Compare to majority baseline.")
     print("=" * 78)
     clf = ml_df[ml_df["model"].isin(["logistic", "rf", "xgb", "majority"])]
     for metric in ["test_accuracy", "test_f1", "test_roc_auc"]:
@@ -47,7 +47,7 @@ def print_tables(ml_csv: Path, dl_csv: Path):
 
     if not dl_df.empty:
         print("\n" + "=" * 78)
-        print(f"DL seq2seq — 14-day metrics — source: {dl_csv.name}")
+        print(f"DL seq2seq - 14-day metrics - source: {dl_csv.name}")
         print("dir_accuracy > 0.50 means the model learned direction.")
         print("=" * 78)
         cols = ["ticker", "epochs", "elapsed_sec",

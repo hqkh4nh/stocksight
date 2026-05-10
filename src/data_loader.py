@@ -13,7 +13,7 @@ RAW_DIR = Path(CFG["paths"]["data_raw_dir"])
 STOCKS_DIR = RAW_DIR / "stocks"
 MACRO_DIR = RAW_DIR / "macro"
 
-# Map yfinance symbol -> short label for filename safety
+# yfinance symbol -> short filename label
 MACRO_LABELS = {
     "^VIX": "vix",
     "^TNX": "tnx",

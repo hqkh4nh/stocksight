@@ -9,7 +9,7 @@ class _DummyModel:
 
 
 class _LagSensitiveModel:
-    """Predicts 0.5 * close_pct_lag_1 — output depends on prior step's update."""
+    """Predicts 0.5 * close_pct_lag_1 - output depends on prior step's update."""
     def __init__(self, lag_idx):
         self.lag_idx = lag_idx
 
@@ -29,8 +29,7 @@ def test_recursive_custom_horizon():
 
 
 def test_recursive_updates_lag_features():
-    """Regression: previous impl never mutated the feature row, so 14 predictions were
-    identical even when the model was lag-sensitive."""
+    """Regression: feature row must mutate between steps, not stay constant."""
     feat_cols = ["returns", "log_returns", "close_pct_lag_1", "close_pct_lag_5", "rsi_14"]
     last_row = np.array([0.02, 0.0198, 0.02, 0.10, 50.0])
     lag_idx = feat_cols.index("close_pct_lag_1")

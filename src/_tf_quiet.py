@@ -11,7 +11,7 @@ try:
         try:
             tf.config.experimental.set_memory_growth(_gpu, True)
         except RuntimeError:
-            # Already initialized — env var above will take effect on next process.
+            # Already initialized; env var above takes effect on next process.
             pass
 except Exception:
     pass

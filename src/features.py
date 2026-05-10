@@ -14,8 +14,7 @@ def add_returns(df):
 
 
 def add_lag_features(df):
-    """Relative (stationary) close lags: today vs N days ago, expressed as % change.
-    Replaces raw price-level lags which were OOD on the test set after the long backfill."""
+    """Stationary close lags: today vs N days ago, as % change."""
     df["close_pct_lag_1"] = df["close"] / df["close"].shift(1) - 1
     df["close_pct_lag_5"] = df["close"] / df["close"].shift(5) - 1
     return df
