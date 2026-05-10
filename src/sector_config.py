@@ -51,16 +51,8 @@ def sector_for(ticker: str) -> str:
     return TICKER_SECTOR[ticker]
 
 
-def feature_recipe(ticker: str) -> list[str]:
-    """Return list of sector-aware feature column names for this ticker."""
-    sector = sector_for(ticker)
-    if sector in OIL_CORR_SECTORS:
-        return ["stock_oil_corr_21", "vol_x_oil"]
-    if sector in RATE_CORR_SECTORS:
-        return ["stock_rate_corr_21"]
-    raise ValueError(f"Unknown sector mapping for {ticker}: {sector}")
-
-
 if __name__ == "__main__":
+    from src.features import feature_columns
+
     for tkr in sorted(TICKER_SECTOR.keys()):
-        print(f"{tkr:6s} -> {sector_for(tkr):16s} feats={feature_recipe(tkr)}")
+        print(f"{tkr:6s} -> {sector_for(tkr):16s} feats={feature_columns(tkr)}")
