@@ -42,6 +42,10 @@ def load_stock(ticker: str, refresh: bool = False) -> pd.DataFrame:
     return df
 
 
+def load_spy(refresh: bool = False) -> pd.DataFrame:
+    return load_stock("SPY", refresh=refresh)
+
+
 def load_macro(symbol: str, refresh: bool = False) -> pd.DataFrame:
     MACRO_DIR.mkdir(parents=True, exist_ok=True)
     label = MACRO_LABELS[symbol]
