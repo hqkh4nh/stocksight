@@ -1,12 +1,12 @@
-"""ML trainers: Ridge, Logistic, RF, XGB, plus recursive_forecast_14."""
+"""ML regressors: Ridge, RF, XGB. Each returns (model, y_pred_test, y_pred_val)."""
 import joblib
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.linear_model import Ridge, LogisticRegression
-from xgboost import XGBClassifier, XGBRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Ridge
+from xgboost import XGBRegressor
 
 from src.config import CFG, MODELS_DIR
-from src.metrics import clf_metrics, reg_metrics
+from src.metrics import reg_metrics
 from src.preprocessing import SplitData
 
 
@@ -14,8 +14,9 @@ def train_ridge(split: SplitData):
     p = CFG["ml"]["ridge"]
     model = Ridge(alpha=p["alpha"], random_state=42)
     model.fit(split.X_train, split.y_return_train)
-    y_pred = model.predict(split.X_test)
-    return model, y_pred, reg_metrics(split.y_return_test, y_pred)
+    y_pred_test = model.predict(split.X_test)
+    y_pred_val = model.predict(split.X_val)
+    return model, y_pred_test, y_pred_val
 
 
 def train_rf_reg(split: SplitData):
@@ -26,8 +27,9 @@ def train_rf_reg(split: SplitData):
         random_state=42, n_jobs=-1,
     )
     model.fit(split.X_train, split.y_return_train)
-    y_pred = model.predict(split.X_test)
-    return model, y_pred, reg_metrics(split.y_return_test, y_pred)
+    y_pred_test = model.predict(split.X_test)
+    y_pred_val = model.predict(split.X_val)
+    return model, y_pred_test, y_pred_val
 
 
 def train_xgb_reg(split: SplitData):
@@ -40,63 +42,16 @@ def train_xgb_reg(split: SplitData):
         random_state=42, n_jobs=-1,
     )
     model.fit(split.X_train, split.y_return_train)
-    y_pred = model.predict(split.X_test)
-    return model, y_pred, reg_metrics(split.y_return_test, y_pred)
+    y_pred_test = model.predict(split.X_test)
+    y_pred_val = model.predict(split.X_val)
+    return model, y_pred_test, y_pred_val
 
 
-def train_logistic(split: SplitData):
-    p = CFG["ml"]["logistic"]
-    model = LogisticRegression(max_iter=p["max_iter"], class_weight=p["class_weight"],
-                               random_state=42)
-    model.fit(split.X_train, split.y_direction_train)
-    y_pred = model.predict(split.X_test)
-    y_proba = model.predict_proba(split.X_test)[:, 1]
-    return model, y_pred, y_proba, clf_metrics(split.y_direction_test, y_pred, y_proba)
-
-
-def train_rf(split: SplitData):
-    p = CFG["ml"]["random_forest"]
-    model = RandomForestClassifier(
-        n_estimators=p["n_estimators"], max_depth=p["max_depth"],
-        min_samples_split=p["min_samples_split"], class_weight=p["class_weight"],
-        random_state=42, n_jobs=-1,
-    )
-    model.fit(split.X_train, split.y_direction_train)
-    y_pred = model.predict(split.X_test)
-    y_proba = model.predict_proba(split.X_test)[:, 1]
-    return model, y_pred, y_proba, clf_metrics(split.y_direction_test, y_pred, y_proba)
-
-
-def train_xgb(split: SplitData):
-    p = CFG["ml"]["xgboost"]
-    pos = int((split.y_direction_train == 1).sum())
-    neg = int((split.y_direction_train == 0).sum())
-    spw = neg / max(pos, 1)
-    model = XGBClassifier(
-        n_estimators=p["n_estimators"], max_depth=p["max_depth"],
-        learning_rate=p["learning_rate"], subsample=p["subsample"],
-        colsample_bytree=p["colsample_bytree"], eval_metric="logloss",
-        scale_pos_weight=spw,
-        tree_method="hist",
-        random_state=42, n_jobs=-1,
-    )
-    model.fit(split.X_train, split.y_direction_train)
-    y_pred = model.predict(split.X_test)
-    y_proba = model.predict_proba(split.X_test)[:, 1]
-    return model, y_pred, y_proba, clf_metrics(split.y_direction_test, y_pred, y_proba)
-
-
-def save_ml_models(ticker: str, ridge, logistic, rf, xgb, scaler_X,
-                   rf_reg=None, xgb_reg=None):
+def save_ml_models(ticker: str, ridge, rf_reg, xgb_reg, scaler_X):
     joblib.dump(ridge, MODELS_DIR / f"{ticker}_ridge.pkl")
-    joblib.dump(logistic, MODELS_DIR / f"{ticker}_logistic.pkl")
-    joblib.dump(rf, MODELS_DIR / f"{ticker}_rf.pkl")
-    joblib.dump(xgb, MODELS_DIR / f"{ticker}_xgb.pkl")
+    joblib.dump(rf_reg, MODELS_DIR / f"{ticker}_rf_reg.pkl")
+    joblib.dump(xgb_reg, MODELS_DIR / f"{ticker}_xgb_reg.pkl")
     joblib.dump(scaler_X, MODELS_DIR / f"{ticker}_scaler_X.joblib")
-    if rf_reg is not None:
-        joblib.dump(rf_reg, MODELS_DIR / f"{ticker}_rf_reg.pkl")
-    if xgb_reg is not None:
-        joblib.dump(xgb_reg, MODELS_DIR / f"{ticker}_xgb_reg.pkl")
 
 
 # === Recursive multi-step forecast ===
@@ -113,14 +68,12 @@ def recursive_forecast_14(model, last_features_row: np.ndarray, feat_cols: list 
     preds = []
 
     if feat_cols is None:
-        # Legacy behaviour for tests using dummy constant models
         feat = feat_raw.reshape(1, -1)
         for _ in range(horizon):
             preds.append(float(model.predict(feat)[0]))
         return np.array(preds)
 
     idx = {c: i for i, c in enumerate(feat_cols)}
-    # Rolling window of last 5 returns for close_pct_lag_5; seed from current 1-day lag.
     recent = [feat_raw[idx["close_pct_lag_1"]]] * 5 if "close_pct_lag_1" in idx else [0.0] * 5
 
     for _ in range(horizon):
@@ -130,7 +83,6 @@ def recursive_forecast_14(model, last_features_row: np.ndarray, feat_cols: list 
         r_pred = float(model.predict(x)[0])
         preds.append(r_pred)
 
-        # Roll the recent-returns window
         recent.append(r_pred)
         recent = recent[-5:]
 
@@ -152,12 +104,6 @@ if __name__ == "__main__":
     macro_df = build_macro_df()
     _, split = prepare_dl_pipeline("BKR", macro_df)
 
-    ridge, _, m_r = train_ridge(split)
-    log, _, _, m_l = train_logistic(split)
-    rf, _, _, m_rf = train_rf(split)
-    xgb, _, _, m_x = train_xgb(split)
-
-    print("Ridge   :", m_r)
-    print("Logistic:", m_l)
-    print("RF      :", m_rf)
-    print("XGB     :", m_x)
+    _, yp_test, yp_val = train_ridge(split)
+    print("Ridge val MAE:", reg_metrics(split.y_return_val, yp_val))
+    print("Ridge test MAE:", reg_metrics(split.y_return_test, yp_test))
