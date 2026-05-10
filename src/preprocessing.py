@@ -9,12 +9,11 @@ Key choices:
 from dataclasses import dataclass
 from pathlib import Path
 
-import joblib
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
-from src.config import CFG, MODELS_DIR
+from src.config import CFG
 from src.data_loader import load_stock, load_all_macro
 from src.features import compute_features, feature_columns
 from src.targets import make_targets
@@ -107,7 +106,7 @@ def prepare_ml_split(df: pd.DataFrame, feat_cols: list, train_ratio: float,
 
 
 def build_dl_sequences(df: pd.DataFrame, feat_cols: list, window: int, horizon: int,
-                       train_ratio: float, ticker: str) -> tuple[DLData, SplitData]:
+                       train_ratio: float) -> tuple[DLData, SplitData]:
     """Build (X, y_return_seq) sliding windows.
 
     For each anchor index i, X[i] = features[i-window+1 .. i] (60 days),
@@ -151,10 +150,6 @@ def build_dl_sequences(df: pd.DataFrame, feat_cols: list, window: int, horizon: 
 
     target_dates = pd.Series(target_dates).reset_index(drop=True)
 
-    # Persist X scaler only (no scaler_y — targets are raw)
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    joblib.dump(scaler_X, MODELS_DIR / f"{ticker}_scaler_X.joblib")
-
     dl = DLData(
         X_train_seq=X_seq[:n_train],
         X_test_seq=X_seq[n_train:],
@@ -185,7 +180,7 @@ def prepare_dl_pipeline(ticker: str, macro_df: pd.DataFrame,
     feats = make_targets(feats)
     feats = feats.dropna().reset_index(drop=True)
     feat_cols = feature_columns(ticker)
-    return build_dl_sequences(feats, feat_cols, window, horizon, train_ratio, ticker)
+    return build_dl_sequences(feats, feat_cols, window, horizon, train_ratio)
 
 
 if __name__ == "__main__":

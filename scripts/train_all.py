@@ -18,20 +18,19 @@ from pathlib import Path
 
 import pandas as pd
 
-import src._tf_quiet  # noqa: F401  — must run before TF import
-import tensorflow as tf
-
-from src.baselines import all_baselines
 from src.config import CFG, RESULTS_DIR
-from src.evaluate import dl_metrics_14d
-from src.models.dl_model import save_dl_model, train_dl
-from src.models.ml_model import (save_ml_models, train_logistic, train_rf,
-                                  train_rf_reg, train_ridge, train_xgb,
-                                  train_xgb_reg)
-from src.preprocessing import build_macro_df, prepare_dl_pipeline
 
 
 def train_one_ticker(ticker: str, macro_df: pd.DataFrame) -> dict:
+    import tensorflow as tf
+    from src.baselines import all_baselines
+    from src.evaluate import dl_metrics_14d
+    from src.models.dl_model import save_dl_model, train_dl
+    from src.models.ml_model import (save_ml_models, train_logistic, train_rf,
+                                     train_rf_reg, train_ridge, train_xgb,
+                                     train_xgb_reg)
+    from src.preprocessing import prepare_dl_pipeline
+
     # Release prior ticker's TF graph + variables so GPU memory doesn't accumulate
     tf.keras.backend.clear_session()
     t0 = time.time()
@@ -81,6 +80,7 @@ def _git_sha() -> str:
 
 
 def _write_metadata(start_iso: str, total_sec: float, n_done: int, n_failed: int) -> None:
+    import tensorflow as tf
     meta = {
         "started_at": start_iso,
         "ended_at": datetime.datetime.now().isoformat(timespec="seconds"),
@@ -96,6 +96,10 @@ def _write_metadata(start_iso: str, total_sec: float, n_done: int, n_failed: int
 
 
 def main():
+    import src._tf_quiet  # noqa: F401  — must run before TF import
+    import tensorflow as tf  # noqa: F401  — pre-loaded so per-ticker import is a cache hit
+    from src.preprocessing import build_macro_df
+
     macro_df = build_macro_df()
     ml_rows = []
     dl_rows = []
