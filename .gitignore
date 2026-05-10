@@ -31,3 +31,4 @@ desktop.ini
 # Env
 .env
 *.env
+.planning/
