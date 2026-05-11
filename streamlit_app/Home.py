@@ -85,14 +85,19 @@ dir_acc_by_ticker = dict(zip(dl_df["ticker"], dl_df["test_dir_accuracy_perday"])
     if "test_dir_accuracy_perday" in dl_df.columns else {}
 
 
+def _hex_to_rgba(hex_color: str, alpha: float) -> str:
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha})"
+
+
 def _spark_fig(prices: pd.Series, last_close: float, first_close: float) -> go.Figure:
     color = SEMANTIC["buy"] if last_close >= first_close else SEMANTIC["sell"]
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=list(range(len(prices))), y=prices.values,
                               mode="lines", line=dict(color=color, width=1.3),
                               fill="tozeroy",
-                              fillcolor=color.replace(")", ",0.06)").replace("rgb", "rgba")
-                                       if color.startswith("rgb") else color + "10",
+                              fillcolor=_hex_to_rgba(color, 0.08),
                               hoverinfo="skip"))
     fig.update_layout(template=plotly_template(),
                       margin=dict(l=0, r=0, t=0, b=0),
