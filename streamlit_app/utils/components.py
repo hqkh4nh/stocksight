@@ -1,4 +1,7 @@
-"""Reusable HTML/Streamlit components matching the handcrafted theme."""
+"""Reusable HTML/Streamlit components for the redesigned theme.
+
+All text uses Be Vietnam Pro via style.css. No italic in any component.
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -16,7 +19,7 @@ def inject_css() -> None:
 
 def page_header(title: str, overline: str | None = None) -> None:
     if overline:
-        st.markdown(f'<div class="ss-overline">{overline}</div>',
+        st.markdown(f'<div class="ss-meta">{overline}</div>',
                     unsafe_allow_html=True)
     st.markdown(f"# {title}")
 
@@ -39,7 +42,7 @@ def recommendation_card(action: str, cum_return: float, horizon: int,
         f'<div class="ss-rec">'
         f'<div class="badge {cls}">{action}</div>'
         f'<div class="meta">Predicted <span class="num">{pct}</span> over '
-        f'<span class="num">{horizon}</span> days · '
+        f'<span class="num">{horizon}</span> days &middot; '
         f'<span class="num">{conf}</span> confidence</div>'
         f'</div>'
     )

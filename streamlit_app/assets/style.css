@@ -1,20 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --ss-bg: #FBFAF7;
-  --ss-paper: #F2EEE6;
-  --ss-ink: #13294B;
-  --ss-accent: #B45F06;
-  --ss-hairline: #E5E0D9;
+  --ss-bg: #FAFAF8;
+  --ss-paper: #F4F2EE;
+  --ss-ink: #1F2937;
+  --ss-accent: #C2410C;
+  --ss-hairline: #E5E7EB;
   --ss-muted: #6B7280;
   --ss-buy: #2F6F4E;
   --ss-hold: #A2845E;
   --ss-sell: #9B2C2C;
 }
 
+/* --- Streamlit chrome -------------------------------------------------- */
+
 #MainMenu, footer { display: none !important; }
 
-/* Header — keep skeleton minimal but visible. */
 header[data-testid="stHeader"] {
   background: transparent !important;
   box-shadow: none !important;
@@ -25,12 +26,7 @@ header[data-testid="stHeader"] [data-testid="stToolbar"] {
   display: none !important;
 }
 
-/* === Pinned sidebar =====================================================
-   Force the sidebar to always be visible and remove every collapse/expand
-   control. Selectors cover multiple Streamlit versions (1.40+ uses
-   stSidebarCollapseButton inside the sidebar and stSidebarCollapsedControl
-   floating in main when collapsed; older versions used collapsedControl).
-*/
+/* Pinned sidebar — keep visible at fixed width, no toggles. */
 section[data-testid="stSidebar"] {
   display: flex !important;
   visibility: visible !important;
@@ -38,6 +34,8 @@ section[data-testid="stSidebar"] {
   min-width: 17rem !important;
   width: 17rem !important;
   max-width: 17rem !important;
+  background: var(--ss-paper);
+  border-right: 1px solid var(--ss-hairline);
 }
 section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"],
 section[data-testid="stSidebar"] [data-testid="stSidebarHeader"] button,
@@ -49,157 +47,165 @@ button[aria-label*="xpand sidebar"] {
   display: none !important;
 }
 
-html, body, [class*="css"] {
-  font-family: 'Inter', -apple-system, sans-serif;
+/* --- Typography -------------------------------------------------------- */
+
+html, body, [class*="css"], .stApp {
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
   color: var(--ss-ink);
   background: var(--ss-bg);
 }
 
 h1, h2, h3, h4 {
-  font-family: 'Source Serif 4', Georgia, serif;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
   color: var(--ss-ink);
   font-weight: 600;
+  font-style: normal;
+  letter-spacing: -0.005em;
 }
 
 h1 {
-  font-style: italic;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 1.8rem;
+  font-weight: 700;
   border-bottom: 1px solid var(--ss-hairline);
-  padding-bottom: 0.4rem;
+  padding-bottom: 0.45rem;
   margin-bottom: 0.6rem;
 }
+h2 { font-size: 1.25rem; font-weight: 600; margin-top: 1.6rem; }
+h3 { font-size: 1.0rem;  font-weight: 600; margin-top: 1.1rem; color: var(--ss-ink); }
 
-h2 { font-size: 1.4rem; margin-top: 1.6rem; }
-h3 { font-size: 1.1rem; margin-top: 1.2rem; font-style: italic; font-weight: 500; }
-
-.ss-overline {
-  font-family: 'Inter', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.72rem;
-  font-weight: 500;
+.ss-meta, .ss-overline {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 400;
   color: var(--ss-muted);
+  letter-spacing: 0;
+  text-transform: none;
 }
 
-.ss-mono, code, pre {
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
-  font-feature-settings: "tnum", "lnum";
+code, pre {
+  font-family: ui-monospace, 'JetBrains Mono', monospace;
+  font-size: 0.85em;
 }
+
+/* --- KPI card ---------------------------------------------------------- */
 
 .ss-kpi {
-  border-left: 2px solid var(--ss-accent);
-  padding: 18px 22px 16px 22px;
-  background: transparent;
+  padding: 14px 0 12px 0;
+  border-bottom: 1px solid var(--ss-hairline);
   margin-bottom: 0.5rem;
 }
 .ss-kpi .label {
-  font-family: 'Inter', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 400;
   color: var(--ss-muted);
-  font-weight: 500;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.35rem;
 }
 .ss-kpi .value {
-  font-family: 'JetBrains Mono', monospace;
-  font-feature-settings: "tnum", "lnum";
-  font-size: 1.75rem;
-  font-weight: 500;
+  font-size: 1.55rem;
+  font-weight: 600;
   color: var(--ss-ink);
-  line-height: 1.1;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 .ss-kpi .sub {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--ss-muted);
-  margin-top: 0.25rem;
-  font-style: italic;
+  margin-top: 0.2rem;
 }
+
+/* --- Sparkline card ---------------------------------------------------- */
 
 .ss-spark {
   border: 1px solid var(--ss-hairline);
+  border-radius: 4px;
   padding: 10px 12px;
   background: transparent;
-  cursor: pointer;
-  transition: background 0.15s;
-  height: 110px;
+  transition: background 0.15s, border-color 0.15s;
+  height: 100px;
 }
-.ss-spark:hover { background: var(--ss-paper); }
+.ss-spark:hover {
+  background: var(--ss-paper);
+  border-color: #D1D5DB;
+}
 .ss-spark .tkr {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 500;
-  font-size: 0.85rem;
-  letter-spacing: 0.03em;
+  font-weight: 600;
+  font-size: 0.88rem;
   color: var(--ss-ink);
 }
 .ss-spark .px {
-  font-family: 'JetBrains Mono', monospace;
-  font-feature-settings: "tnum";
   font-size: 0.95rem;
+  font-weight: 500;
   color: var(--ss-ink);
+  font-variant-numeric: tabular-nums;
 }
 .ss-spark .delta-pos { color: var(--ss-buy); font-size: 0.75rem; }
 .ss-spark .delta-neg { color: var(--ss-sell); font-size: 0.75rem; }
 
+/* --- Recommendation card ---------------------------------------------- */
+
 .ss-rec {
   text-align: center;
-  padding: 28px 0 24px 0;
+  padding: 22px 0 20px 0;
   border-top: 1px solid var(--ss-hairline);
   border-bottom: 1px solid var(--ss-hairline);
-  margin: 1rem 0 1.5rem 0;
+  margin: 1rem 0 1.4rem 0;
 }
 .ss-rec .badge {
-  font-family: 'Source Serif 4', serif;
-  font-style: italic;
-  font-size: 3.4rem;
+  font-size: 2.4rem;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   line-height: 1;
 }
 .ss-rec .badge.buy { color: var(--ss-buy); }
 .ss-rec .badge.hold { color: var(--ss-hold); }
 .ss-rec .badge.sell { color: var(--ss-sell); }
 .ss-rec .meta {
-  font-family: 'Inter', sans-serif;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--ss-muted);
-  margin-top: 0.6rem;
+  margin-top: 0.5rem;
 }
 .ss-rec .meta .num {
-  font-family: 'JetBrains Mono', monospace;
-  font-feature-settings: "tnum";
   color: var(--ss-ink);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
-button, .stButton > button {
-  border: 1px solid var(--ss-ink) !important;
-  background: transparent !important;
+/* --- Buttons (near Streamlit native) ---------------------------------- */
+
+.stButton > button {
+  border: 1px solid var(--ss-hairline) !important;
+  background: #FFFFFF !important;
   color: var(--ss-ink) !important;
-  border-radius: 0 !important;
-  font-family: 'Inter', sans-serif !important;
+  border-radius: 4px !important;
+  font-family: 'Be Vietnam Pro', sans-serif !important;
   font-weight: 500 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
-  font-size: 0.78rem !important;
-  padding: 0.5rem 1.2rem !important;
+  font-size: 0.88rem !important;
+  padding: 0.42rem 1rem !important;
   box-shadow: none !important;
 }
 .stButton > button:hover {
-  background: var(--ss-ink) !important;
-  color: var(--ss-bg) !important;
+  border-color: var(--ss-accent) !important;
+  color: var(--ss-accent) !important;
+}
+.stDownloadButton > button {
+  border: 1px solid var(--ss-hairline) !important;
+  background: #FFFFFF !important;
+  color: var(--ss-ink) !important;
+  border-radius: 4px !important;
 }
 
+/* --- Tabs -------------------------------------------------------------- */
+
 .stTabs [data-baseweb="tab-list"] {
-  gap: 1.4rem;
+  gap: 1.2rem;
   border-bottom: 1px solid var(--ss-hairline);
 }
 .stTabs [data-baseweb="tab"] {
   background: transparent;
   border-radius: 0;
-  padding: 0.6rem 0;
-  font-family: 'Inter', sans-serif;
-  font-size: 0.85rem;
+  padding: 0.55rem 0;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 0.88rem;
   font-weight: 500;
   color: var(--ss-muted);
 }
@@ -208,19 +214,24 @@ button, .stButton > button {
   border-bottom: 2px solid var(--ss-accent) !important;
 }
 
+/* --- DataFrame numbers tabular ---------------------------------------- */
+
 div[data-testid="stDataFrame"] {
-  font-family: 'JetBrains Mono', monospace;
-  font-feature-settings: "tnum";
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
 hr { border-color: var(--ss-hairline); }
 
-section[data-testid="stSidebar"] {
-  background: var(--ss-paper);
-  border-right: 1px solid var(--ss-hairline);
-}
+/* --- Sidebar inner styling -------------------------------------------- */
+
 section[data-testid="stSidebar"] h1,
-section[data-testid="stSidebar"] h2 {
-  font-size: 1rem;
-  font-style: italic;
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-style: normal;
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-top: 0.4rem;
 }
