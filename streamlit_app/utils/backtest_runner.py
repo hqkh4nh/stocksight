@@ -9,8 +9,7 @@ from src.backtest import (BacktestConfig, BacktestResult, buy_and_hold,
                           compute_metrics, load_close_panel)
 from src.config import CFG
 from streamlit_app.utils.data import (load_predictions_dl,
-                                      load_predictions_ml,
-                                      load_stock_cached)
+                                      load_predictions_ml)
 
 
 def _build_single_dl_signal(ticker: str) -> pd.DataFrame:

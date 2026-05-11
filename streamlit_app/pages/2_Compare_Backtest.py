@@ -32,6 +32,8 @@ tab_cmp, tab_bt = st.tabs(["Model comparison", "Backtest"])
 
 # === Tab 1: Model comparison =================================================
 with tab_cmp:
+    from streamlit_app.utils.data import load_predictions_dl
+
     ml = load_ml_summary()
     dl = load_dl_summary()
 
@@ -41,11 +43,17 @@ with tab_cmp:
                 "r2_score", "directional_accuracy"]]
               .mean().reset_index())
 
+    # DL MAE in return space (same unit as ML) from predictions_dl
+    pred_dl = load_predictions_dl()
+    dl_d1 = pred_dl[pred_dl["horizon_step"] == 1]
+    dl_mae_ret = float((dl_d1["y_pred_return"] - dl_d1["y_true_return"]).abs().mean())
+    dl_rmse_ret = float(np.sqrt(((dl_d1["y_pred_return"] -
+                                   dl_d1["y_true_return"]) ** 2).mean()))
+
     dl_mean = pd.DataFrame([{
         "model": "dl_seq2seq",
-        "test_mae_return": float(dl["test_mae_price_d1"].mean()) /
-                           float(dl["test_mae_price_d1"].mean() + 1.0),
-        "test_rmse_return": np.nan,
+        "test_mae_return": dl_mae_ret,
+        "test_rmse_return": dl_rmse_ret,
         "r2_score": np.nan,
         "directional_accuracy": float(dl["test_dir_accuracy_perday"].mean()),
     }])
@@ -104,13 +112,15 @@ with tab_cmp:
                                      ("DL", None, "DL_seq2seq")]:
         if ml_key is None:
             dir_acc = float(dl["test_dir_accuracy_perday"].mean())
-            mae_norm = 0.5
-            r2 = float(dl.get("test_dir_accuracy_t14", pd.Series([0.5])).mean())
+            mae_norm = max(0.0, 1.0 - dl_mae_ret /
+                                  max(float(ml_reg["test_mae_return"].max()),
+                                      dl_mae_ret, 1e-6))
+            r2 = 0.0  # DL not measured against an R^2; leave 0 in the radar
         else:
             sub = ml_reg[ml_reg["model"] == ml_key]
             dir_acc = float(sub["directional_accuracy"].mean())
-            mae_norm = 1.0 - float(sub["test_mae_return"].mean()) / \
-                       float(ml_reg["test_mae_return"].max())
+            denom = max(float(ml_reg["test_mae_return"].max()), 1e-6)
+            mae_norm = max(0.0, 1.0 - float(sub["test_mae_return"].mean()) / denom)
             r2 = float(sub["r2_score"].mean())
         sharpe = bt_map.get(bt_key, 0.0)
         sharpe_norm = max(0.0, min(1.0, (sharpe + 1.0) / 3.0))

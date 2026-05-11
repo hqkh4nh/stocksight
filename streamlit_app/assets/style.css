@@ -12,7 +12,19 @@
   --ss-sell: #9B2C2C;
 }
 
-#MainMenu, footer, header[data-testid="stHeader"] { display: none !important; }
+#MainMenu, footer { display: none !important; }
+
+/* Keep header skeleton so the sidebar collapse/expand toggle stays accessible,
+   but make it visually quiet. */
+header[data-testid="stHeader"] {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-bottom: none !important;
+  height: 2.2rem !important;
+}
+header[data-testid="stHeader"] [data-testid="stToolbar"] {
+  display: none !important;
+}
 
 html, body, [class*="css"] {
   font-family: 'Inter', -apple-system, sans-serif;

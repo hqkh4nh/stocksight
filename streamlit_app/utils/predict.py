@@ -60,6 +60,7 @@ def _load_dl_model(ticker: str):
             "bounded_return": bounded_return,
         },
         compile=False,
+        safe_mode=False,
     )
 
 
