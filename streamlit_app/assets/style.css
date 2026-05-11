@@ -14,8 +14,7 @@
 
 #MainMenu, footer { display: none !important; }
 
-/* Keep header skeleton so the sidebar collapse/expand toggle stays accessible,
-   but make it visually quiet. */
+/* Header — keep skeleton minimal but visible. */
 header[data-testid="stHeader"] {
   background: transparent !important;
   box-shadow: none !important;
@@ -23,6 +22,30 @@ header[data-testid="stHeader"] {
   height: 2.2rem !important;
 }
 header[data-testid="stHeader"] [data-testid="stToolbar"] {
+  display: none !important;
+}
+
+/* === Pinned sidebar =====================================================
+   Force the sidebar to always be visible and remove every collapse/expand
+   control. Selectors cover multiple Streamlit versions (1.40+ uses
+   stSidebarCollapseButton inside the sidebar and stSidebarCollapsedControl
+   floating in main when collapsed; older versions used collapsedControl).
+*/
+section[data-testid="stSidebar"] {
+  display: flex !important;
+  visibility: visible !important;
+  transform: none !important;
+  min-width: 17rem !important;
+  width: 17rem !important;
+  max-width: 17rem !important;
+}
+section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"],
+section[data-testid="stSidebar"] [data-testid="stSidebarHeader"] button,
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"],
+button[kind="header"][aria-label*="ollapse"],
+button[aria-label*="ollapse sidebar"],
+button[aria-label*="xpand sidebar"] {
   display: none !important;
 }
 
