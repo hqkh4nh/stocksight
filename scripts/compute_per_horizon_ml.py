@@ -1,13 +1,12 @@
-"""Offline pre-compute per-horizon MAE for ML regressors.
+"""Offline pre-compute per-horizon MAE for ML regressors (batched / vectorized).
 
-For each (ticker, model in [ridge, rf_reg, xgb_reg], horizon in 1..14):
-  - For each anchor index i in the test window,
-    run recursive_forecast_14 from features[i],
-    compare predicted return path against realized returns[i+1..i+14].
-  - Aggregate MAE on the predicted PRICE path (close * cumprod(1 + rets))
-    vs the realized close path, to match the units in dl_summary.
+For each (ticker, model in [ridge, rf_reg, xgb_reg]), all test anchors are
+forecasted simultaneously. At each horizon step we run a single
+`model.predict(X)` on the full (n_anchors, n_features) batch, then update
+lag features in-place before stepping to the next horizon. This collapses
+~n_anchors x horizon model.predict calls into `horizon` calls.
 
-Output: results/per_horizon_ml.csv with columns (ticker, model, horizon, mae_price).
+Output: results/per_horizon_ml.csv with columns (ticker, model, horizon, mae_price, n).
 """
 from __future__ import annotations
 
@@ -18,11 +17,49 @@ import numpy as np
 import pandas as pd
 
 from src.config import CFG, MODELS_DIR, RESULTS_DIR
-from src.features import compute_features, feature_columns
-from src.models.ml_model import recursive_forecast_14
-from src.preprocessing import build_macro_df
 from src.data_loader import load_stock
+from src.features import compute_features, feature_columns
+from src.preprocessing import build_macro_df
 from src.targets import make_targets
+
+
+def _batch_recursive_forecast(model, X0: np.ndarray, feat_cols: list[str],
+                              scaler, horizon: int) -> np.ndarray:
+    """Batched version of recursive_forecast_14.
+
+    X0 shape: (n_anchors, n_features) — unscaled feature rows for each anchor.
+    Returns: (n_anchors, horizon) array of predicted returns.
+    """
+    X = X0.astype(float).copy()
+    idx = {c: i for i, c in enumerate(feat_cols)}
+    n = X.shape[0]
+
+    has_returns = "returns" in idx
+    has_log = "log_returns" in idx
+    has_lag1 = "close_pct_lag_1" in idx
+    has_lag5 = "close_pct_lag_5" in idx
+
+    recent = np.zeros((n, 5), dtype=float)
+    if has_lag1:
+        recent[:] = X[:, idx["close_pct_lag_1"]][:, None]
+
+    preds = np.zeros((n, horizon), dtype=float)
+    for h in range(horizon):
+        Xs = scaler.transform(X) if scaler is not None else X
+        r = model.predict(Xs)
+        preds[:, h] = r
+
+        recent = np.concatenate([recent[:, 1:], r[:, None]], axis=1)
+        if has_returns:
+            X[:, idx["returns"]] = r
+        if has_log:
+            X[:, idx["log_returns"]] = np.log1p(r)
+        if has_lag1:
+            X[:, idx["close_pct_lag_1"]] = r
+        if has_lag5:
+            X[:, idx["close_pct_lag_5"]] = np.prod(1.0 + recent, axis=1) - 1.0
+
+    return preds
 
 
 def per_horizon_for_ticker(ticker: str, macro_df: pd.DataFrame,
@@ -35,28 +72,31 @@ def per_horizon_for_ticker(ticker: str, macro_df: pd.DataFrame,
     n = len(feats)
     train_end = int(n * CFG["split"]["train_ratio"])
     test_idx = np.arange(train_end, n - horizon)
+    if len(test_idx) == 0:
+        return []
 
     scaler = joblib.load(MODELS_DIR / f"{ticker}_scaler_X.joblib")
     closes = feats["close"].values
+    X0 = feats[feat_cols].iloc[test_idx].values.astype(float)
+    anchors = closes[test_idx]
+
+    real_paths = np.stack([closes[i + 1: i + 1 + horizon] for i in test_idx])
 
     rows = []
     for model_name in ["ridge", "rf_reg", "xgb_reg"]:
         model = joblib.load(MODELS_DIR / f"{ticker}_{model_name}.pkl")
-        h_errors = {h: [] for h in range(1, horizon + 1)}
-        for i in test_idx:
-            x0 = feats[feat_cols].iloc[i].values.astype(float)
-            rets = recursive_forecast_14(model, x0, feat_cols=feat_cols,
-                                          scaler_X=scaler, horizon=horizon)
-            anchor = closes[i]
-            pred_path = anchor * np.cumprod(1.0 + rets)
-            real_path = closes[i + 1: i + 1 + horizon]
-            for h in range(1, horizon + 1):
-                h_errors[h].append(abs(pred_path[h - 1] - real_path[h - 1]))
-        for h, errs in h_errors.items():
-            rows.append({"ticker": ticker, "model": model_name,
-                          "horizon": h,
-                          "mae_price": float(np.mean(errs)) if errs else float("nan"),
-                          "n": len(errs)})
+        rets = _batch_recursive_forecast(model, X0, feat_cols, scaler, horizon)
+        pred_paths = anchors[:, None] * np.cumprod(1.0 + rets, axis=1)
+
+        abs_err = np.abs(pred_paths - real_paths)
+        for h in range(horizon):
+            rows.append({
+                "ticker": ticker,
+                "model": model_name,
+                "horizon": h + 1,
+                "mae_price": float(abs_err[:, h].mean()),
+                "n": int(len(test_idx)),
+            })
     return rows
 
 
