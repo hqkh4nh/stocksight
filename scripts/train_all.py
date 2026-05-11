@@ -60,6 +60,8 @@ def train_one_ticker(ticker: str, macro_df: pd.DataFrame) -> dict:
     from src.evaluation_report import (dl_extended_metrics,
                                        dl_test_predictions_long,
                                        extended_reg_metrics)
+    import joblib
+    from src.config import MODELS_DIR
     from src.models.dl_model import save_dl_history, save_dl_model, train_dl
     from src.models.ml_model import (save_ml_models, train_rf_reg,
                                      train_ridge, train_xgb_reg)
@@ -105,6 +107,7 @@ def train_one_ticker(ticker: str, macro_df: pd.DataFrame) -> dict:
     dl_model, hist = train_dl(dl, verbose=0)
     save_dl_model(ticker, dl_model)
     save_dl_history(ticker, hist)
+    joblib.dump(dl.scaler_X, MODELS_DIR / f"{ticker}_dl_scaler.joblib")
     m_dl = dl_extended_metrics(dl_model, dl, hist)
 
     dl_long = dl_test_predictions_long(dl_model, dl)
