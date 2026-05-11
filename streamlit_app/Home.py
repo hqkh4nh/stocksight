@@ -134,11 +134,11 @@ for sector in SECTOR_ORDER:
                 unsafe_allow_html=True,
             )
             st.plotly_chart(_spark_fig(spark["close"], last_p, first_p),
-                            use_container_width=True,
+                            width="stretch",
                             config={"displayModeBar": False},
                             key=f"spark_{t}")
             if st.button("Select", key=f"sel_{t}",
-                         use_container_width=True):
+                         width="stretch"):
                 st.session_state["selected_ticker"] = t
                 st.rerun()
 
@@ -184,7 +184,7 @@ with tab_c:
                       margin=dict(l=40, r=20, t=20, b=30))
     fig.update_yaxes(title_text="Price", row=1, col=1)
     fig.update_yaxes(title_text="Volume", row=2, col=1)
-    st.plotly_chart(fig, use_container_width=True, key="candle")
+    st.plotly_chart(fig, width="stretch", key="candle")
 
 with tab_m:
     df1y = feats.tail(252).copy()
@@ -208,7 +208,7 @@ with tab_m:
     fig.update_layout(template=plotly_template(), height=520)
     fig.update_yaxes(title_text="RSI", row=1, col=1, range=[0, 100])
     fig.update_yaxes(title_text="MACD", row=2, col=1)
-    st.plotly_chart(fig, use_container_width=True, key="momentum")
+    st.plotly_chart(fig, width="stretch", key="momentum")
 
 with tab_b:
     df1y = feats.tail(252).copy()
@@ -231,7 +231,7 @@ with tab_b:
     fig.add_trace(go.Scatter(x=df1y["date"], y=df1y["close"], mode="lines",
                               line=dict(color=INK, width=1.5), name="Close"))
     fig.update_layout(template=plotly_template(), height=460)
-    st.plotly_chart(fig, use_container_width=True, key="bb")
+    st.plotly_chart(fig, width="stretch", key="bb")
 
 with tab_h:
     base = [c for c in FEATURE_COLUMNS_BASE if c in feats.columns]
@@ -256,4 +256,4 @@ with tab_h:
     fig.update_layout(template=plotly_template(), height=540,
                       annotations=annotations,
                       xaxis=dict(tickangle=-45))
-    st.plotly_chart(fig, use_container_width=True, key="corr")
+    st.plotly_chart(fig, width="stretch", key="corr")

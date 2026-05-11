@@ -63,7 +63,7 @@ with tab_cmp:
                               marker_color=PALETTE[i]))
     fig.update_layout(template=plotly_template(), barmode="group", height=380,
                       legend=dict(orientation="h", y=1.1))
-    st.plotly_chart(fig, use_container_width=True, key="cmp_bar")
+    st.plotly_chart(fig, width="stretch", key="cmp_bar")
 
     # Per-horizon error
     st.markdown("### Per-horizon forecast error")
@@ -91,7 +91,7 @@ with tab_cmp:
     fig.update_layout(template=plotly_template(), height=380,
                       xaxis_title="Horizon (days)",
                       yaxis_title="MAE (price units, USD)")
-    st.plotly_chart(fig, use_container_width=True, key="per_h")
+    st.plotly_chart(fig, width="stretch", key="per_h")
 
     # Radar
     st.markdown("### Per-axis profile")
@@ -133,7 +133,7 @@ with tab_cmp:
         ))
     fig.update_layout(template=plotly_template(), height=460,
                       polar=dict(radialaxis=dict(range=[0, 1], visible=True)))
-    st.plotly_chart(fig, use_container_width=True, key="radar")
+    st.plotly_chart(fig, width="stretch", key="radar")
 
     # Summary table
     st.markdown("### Summary table")
@@ -142,7 +142,7 @@ with tab_cmp:
     ].round(4)
     st.dataframe(
         summary_view.style.highlight_max(axis=0, props="background-color:#F2EEE6"),
-        use_container_width=True,
+        width="stretch",
     )
 
 
@@ -166,7 +166,7 @@ with tab_bt:
     with c4:
         cost_bp = st.number_input("Cost (bp)", value=10, step=5, min_value=0)
 
-    if st.button("Run backtest", use_container_width=False):
+    if st.button("Run backtest", width="content"):
         with st.spinner(f"Backtesting {ticker} · {model_label}..."):
             try:
                 res = run_single(ticker, model_key,
@@ -203,7 +203,7 @@ with tab_bt:
         fig.update_layout(template=plotly_template(), height=380,
                           yaxis_title="Equity (USD)",
                           legend=dict(orientation="h", y=1.05))
-        st.plotly_chart(fig, use_container_width=True, key="bt_eq")
+        st.plotly_chart(fig, width="stretch", key="bt_eq")
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=res["drawdown"].index,
@@ -215,7 +215,7 @@ with tab_bt:
         fig.update_layout(template=plotly_template(), height=240,
                           yaxis_title="Drawdown (%)",
                           showlegend=False)
-        st.plotly_chart(fig, use_container_width=True, key="bt_dd")
+        st.plotly_chart(fig, width="stretch", key="bt_dd")
 
         if not res["trades"].empty:
             st.markdown("#### Trades")
@@ -224,6 +224,6 @@ with tab_bt:
             tt["weight"] = tt["weight"].map(lambda v: f"{v:.0%}")
             tt["price"] = tt["price"].map(lambda v: f"${v:,.2f}"
                                            if pd.notna(v) else "—")
-            st.dataframe(tt.tail(50), use_container_width=True, hide_index=True)
+            st.dataframe(tt.tail(50), width="stretch", hide_index=True)
     else:
         st.info("Press **Run backtest** to execute on the selected configuration.")

@@ -80,7 +80,7 @@ st.markdown("### Beeswarm — feature importance distribution")
 fig = plt.figure(figsize=(9, 5))
 shap.plots.beeswarm(shap_values, max_display=15, show=False)
 plt.tight_layout()
-st.pyplot(fig, use_container_width=True)
+st.pyplot(fig, width="stretch")
 plt.close(fig)
 
 # Waterfall
@@ -90,7 +90,7 @@ display.feature_names = [pretty_name(f) for f in X_test.columns]
 fig = plt.figure(figsize=(9, 5))
 shap.plots.waterfall(display, max_display=15, show=False)
 plt.tight_layout()
-st.pyplot(fig, use_container_width=True)
+st.pyplot(fig, width="stretch")
 plt.close(fig)
 
 # Bar
@@ -98,5 +98,5 @@ st.markdown("### Mean |SHAP| — global importance")
 fig = plt.figure(figsize=(9, 5))
 shap.plots.bar(shap_values, max_display=15, show=False)
 plt.tight_layout()
-st.pyplot(fig, use_container_width=True)
+st.pyplot(fig, width="stretch")
 plt.close(fig)

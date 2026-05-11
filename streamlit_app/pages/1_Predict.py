@@ -44,7 +44,7 @@ with st.sidebar:
     model_label = st.selectbox("Model", list(MODEL_OPTIONS.keys()))
     model_name = MODEL_OPTIONS[model_label]
     horizon = st.slider("Horizon (days)", min_value=1, max_value=14, value=14)
-    run = st.button("Run prediction", use_container_width=True)
+    run = st.button("Run prediction", width="stretch")
 
 st.session_state["selected_ticker"] = ticker
 
@@ -90,7 +90,7 @@ fig.add_trace(go.Scatter(x=proj_df["date"], y=proj_df["close"], mode="lines+mark
 fig.add_vline(x=last_date, line=dict(color=MUTED, width=0.8, dash="dot"))
 fig.update_layout(template=plotly_template(), height=460,
                   legend=dict(orientation="h", y=1.05))
-st.plotly_chart(fig, use_container_width=True, key="predict_chart")
+st.plotly_chart(fig, width="stretch", key="predict_chart")
 
 
 # === Prediction table ===
@@ -103,7 +103,7 @@ table = pd.DataFrame({
     "Cum return": [f"{(np.prod(1 + rets[:i+1]) - 1)*100:+.2f}%"
                    for i in range(len(rets))],
 })
-st.dataframe(table, use_container_width=True, hide_index=True)
+st.dataframe(table, width="stretch", hide_index=True)
 
 
 # === Actions ===
@@ -112,4 +112,4 @@ with c1:
     csv = table.to_csv(index=False).encode("utf-8")
     st.download_button("Export CSV", csv,
                        file_name=f"{ticker}_{model_name}_{horizon}d.csv",
-                       mime="text/csv", use_container_width=True)
+                       mime="text/csv", width="stretch")
