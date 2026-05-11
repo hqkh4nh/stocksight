@@ -28,7 +28,7 @@ from streamlit_app.utils.theme import (ACCENT, BG, HAIRLINE, INK, MUTED,
                                         SEMANTIC, plotly_template)
 
 st.set_page_config(page_title="StockSight", layout="wide",
-                   initial_sidebar_state="collapsed")
+                   initial_sidebar_state="expanded")
 inject_css()
 
 SECTOR_ORDER = ["energy", "industrial", "consumer_disc", "consumer_staples",

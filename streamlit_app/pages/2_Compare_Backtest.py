@@ -22,7 +22,7 @@ from streamlit_app.utils.theme import (ACCENT, INK, MUTED, PALETTE, SEMANTIC,
                                         plotly_template)
 
 st.set_page_config(page_title="Compare & Backtest — StockSight",
-                   layout="wide", initial_sidebar_state="collapsed")
+                   layout="wide", initial_sidebar_state="expanded")
 inject_css()
 
 page_header("Compare & Backtest",

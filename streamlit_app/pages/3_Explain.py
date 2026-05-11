@@ -23,7 +23,7 @@ from streamlit_app.utils.shap_runner import (compute_shap,
 from streamlit_app.utils.theme import BG, INK
 
 st.set_page_config(page_title="Explain — StockSight",
-                   layout="wide", initial_sidebar_state="collapsed")
+                   layout="wide", initial_sidebar_state="expanded")
 inject_css()
 
 page_header("Explainability (SHAP)",
