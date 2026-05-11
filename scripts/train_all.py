@@ -227,6 +227,15 @@ def main():
     _write_metadata(start_iso, total_sec, n_done=len(dl_rows), n_failed=len(failed))
     concat_predictions(done_tickers)
 
+    # Post-training: compute per-horizon ML MAE (used by the Compare page).
+    # Non-fatal — training artifacts are already persisted above.
+    print("\n=== Per-horizon ML evaluation ===", flush=True)
+    try:
+        from scripts.compute_per_horizon_ml import main as compute_per_horizon
+        compute_per_horizon()
+    except Exception as e:
+        print(f"  per-horizon ML failed (non-fatal): {e}", flush=True)
+
     print(f"\nTotal: {total_sec:.1f}s ({total_sec / 60:.1f} min)")
     print(f"Saved: {RESULTS_DIR}/ml_summary.csv ({len(ml_rows)} rows)")
     print(f"Saved: {RESULTS_DIR}/dl_summary.csv ({len(dl_rows)} rows)")
