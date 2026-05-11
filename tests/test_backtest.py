@@ -3,9 +3,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.backtest import (BacktestConfig, _build_weights, _max_drawdown,
-                          buy_and_hold, buy_and_hold_equal_weight,
-                          compute_metrics, run_topk_daily)
+from src.backtest import (BacktestConfig, BacktestResult, _build_weights,
+                          _max_drawdown, align_to_common_window, buy_and_hold,
+                          buy_and_hold_equal_weight, compute_metrics,
+                          run_topk_daily)
 
 
 @pytest.fixture
@@ -98,6 +99,42 @@ def test_signal_lag_no_lookahead(synthetic_panel):
                                                     cost_per_trade=0.0))
     assert res.positions.iloc[10].sum() == 0.0
     assert res.positions.iloc[11, 0] > 0.0
+
+
+def test_align_to_common_window_intersects_dates():
+    dates_a = pd.bdate_range("2024-01-01", periods=50)
+    dates_b = pd.bdate_range("2024-01-15", periods=50)
+
+    r_a = BacktestResult(
+        equity=pd.Series(np.cumprod(1 + np.full(50, 0.001)), index=dates_a),
+        daily_returns=pd.Series(0.001, index=dates_a),
+        positions=pd.DataFrame(0.2, index=dates_a, columns=["A"]),
+        turnover=pd.Series(0.0, index=dates_a),
+    )
+    bench_b = pd.Series(np.cumprod(1 + np.full(50, 0.0005)), index=dates_b)
+
+    new_r, new_b, common = align_to_common_window({"S": r_a}, {"B": bench_b})
+
+    assert len(common) > 0
+    assert common.min() >= max(dates_a.min(), dates_b.min())
+    assert common.max() <= min(dates_a.max(), dates_b.max())
+    assert len(new_r["S"].daily_returns) == len(common)
+    assert len(new_b["B"]) == len(common)
+
+
+def test_align_to_common_window_renormalizes_equity():
+    dates = pd.bdate_range("2024-01-01", periods=20)
+    rets = pd.Series(np.full(20, 0.01), index=dates)
+    r = BacktestResult(
+        equity=pd.Series(np.cumprod(1 + rets), index=dates),
+        daily_returns=rets,
+        positions=pd.DataFrame(0.2, index=dates, columns=["A"]),
+        turnover=pd.Series(0.0, index=dates),
+    )
+    bench = pd.Series(np.cumprod(1 + np.full(20, 0.005)), index=dates)
+
+    new_r, _, _ = align_to_common_window({"S": r}, {"B": bench})
+    assert abs(new_r["S"].equity.iloc[0] - 1.01) < 1e-6
 
 
 def test_build_weights_top_k_cap(synthetic_panel):

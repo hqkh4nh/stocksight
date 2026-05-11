@@ -132,6 +132,46 @@ def run_topk_daily(signal: pd.DataFrame,
     )
 
 
+# --- common-window alignment ------------------------------------------------
+
+def align_to_common_window(
+    strategy_results: dict,
+    benchmark_equities: dict,
+) -> tuple[dict, dict, pd.DatetimeIndex]:
+    """Trim every strategy & benchmark to the common date intersection.
+
+    Returns NEW BacktestResult objects with equity re-derived from sliced
+    daily_returns (equity[0] = 1 + r[0]) and benchmark equities re-normalized
+    via pct_change → cumprod on the same window.
+    """
+    common = None
+    for r in strategy_results.values():
+        idx = r.daily_returns.index
+        common = idx if common is None else common.intersection(idx)
+    for eq in benchmark_equities.values():
+        ret_idx = eq.pct_change().dropna().index
+        common = common.intersection(ret_idx)
+    common = common.sort_values()
+
+    new_results = {}
+    for name, r in strategy_results.items():
+        rets = r.daily_returns.loc[common]
+        eq = (1.0 + rets).cumprod()
+        positions = r.positions.loc[common]
+        turnover = r.turnover.loc[common]
+        new_results[name] = BacktestResult(
+            equity=eq, daily_returns=rets,
+            positions=positions, turnover=turnover,
+        )
+
+    new_bench = {}
+    for name, eq in benchmark_equities.items():
+        rets = eq.pct_change().loc[common].fillna(0.0)
+        new_bench[name] = (1.0 + rets).cumprod()
+
+    return new_results, new_bench, common
+
+
 # --- benchmarks -------------------------------------------------------------
 
 def buy_and_hold(prices: pd.Series) -> pd.Series:
