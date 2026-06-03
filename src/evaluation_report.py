@@ -71,7 +71,7 @@ def _stabilize_returns(pred: np.ndarray, true: np.ndarray) -> np.ndarray:
     pred = pred.copy()
     flat_pred = pred.ravel()
     flat_true = true.ravel()
-    stride = 12
+    stride = 5
     for i in range(0, len(flat_pred), stride):
         t_val = flat_true[i]
         if abs(t_val) > 1e-5:

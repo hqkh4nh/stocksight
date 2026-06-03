@@ -46,7 +46,7 @@ def build_dl_signal(predictions_dl: pd.DataFrame) -> pd.DataFrame:
     if "calibrated" not in df.columns and "y_true_price" in df.columns:
         cum_true = (df["y_true_price"] / df["close_anchor"] - 1.0).values.copy()
         cum_pred = (df["y_pred_price"] / df["close_anchor"] - 1.0).values.copy()
-        stride = 12
+        stride = 5
         for i in range(0, len(cum_pred), stride):
             t_val = cum_true[i]
             if abs(t_val) > 1e-5:
