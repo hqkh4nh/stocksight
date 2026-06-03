@@ -62,6 +62,8 @@ class DLData:
 
 def build_macro_df() -> pd.DataFrame:
     """Combine all macro indices into one dataframe with pct_change columns."""
+    # Moi chi so vi mo duoc chuyen thanh pct_change de model hoc bien dong
+    # tuong doi thay vi muc gia tuyet doi cua tung chi so.
     macros = load_all_macro()
     out = macros["vix"][["date"]].copy()
     out["vix_change"] = macros["vix"]["close"].pct_change()
@@ -79,6 +81,8 @@ def prepare_ml_split(df: pd.DataFrame, feat_cols: list, train_ratio: float,
     (still inside the train MinMax range, fit on full train).
     """
     df = df.sort_values("date").reset_index(drop=True)
+    # X la ma tran feature dau vao, y_return la nhan can du doan cho bai toan
+    # hoi quy 1 ngay, close duoc giu de doi return ve gia khi can.
     X = df[feat_cols].values.astype(np.float32)
     y_return = df["y_return"].values.astype(np.float32)
     close = df["close"].values.astype(np.float32)
@@ -89,10 +93,14 @@ def prepare_ml_split(df: pd.DataFrame, feat_cols: list, train_ratio: float,
         split_idx = int(n * train_ratio)
     split_idx = max(1, min(split_idx, n - 1))
 
+    # Rat quan trong: scaler chi fit tren tap train de tranh data leakage.
+    # Test chi duoc transform bang thong so min/max hoc tu train.
     scaler_X = MinMaxScaler()
     X_train_full_scaled = scaler_X.fit_transform(X[:split_idx])
     X_test = scaler_X.transform(X[split_idx:])
 
+    # Validation lay phan cuoi cua train theo thu tu thoi gian. Model trong
+    # file ML fit tren X_train, con X_val dung de bao cao do lech train/test.
     val_size = max(1, int(split_idx * val_ratio))
     train_end = split_idx - val_size
 
@@ -124,12 +132,16 @@ def build_dl_sequences(df: pd.DataFrame, feat_cols: list, window: int, horizon: 
     df = df.sort_values("date").reset_index(drop=True)
     n = len(df)
 
+    # valid_idx la cac ngay anchor hop le: phai co du `window` ngay qua khu
+    # lam input va du `horizon` ngay tuong lai lam target.
     valid_idx = np.arange(window - 1, n - horizon)
     if len(valid_idx) <= 0:
         raise ValueError(f"Not enough rows ({n}) for window={window} + horizon={horizon}")
 
     n_train = int(len(valid_idx) * train_ratio)
 
+    # Tim tat ca dong feature xuat hien trong cac window train de fit scaler.
+    # Cach nay dam bao ngay tuong lai/test khong tham gia tinh min/max.
     train_anchor_indices = valid_idx[:n_train]
     train_feat_rows = np.unique(np.concatenate([
         np.arange(i - window + 1, i + 1) for i in train_anchor_indices
@@ -142,13 +154,17 @@ def build_dl_sequences(df: pd.DataFrame, feat_cols: list, window: int, horizon: 
     X_full = scaler_X.transform(df[feat_cols].values.astype(np.float32))
     n_features = X_full.shape[1]
 
+    # X_seq[k] co dang (60 ngay, so_feature). y_ret_seq[k] co dang
+    # (14 ngay, 1) va la raw return, khong scale, de loss phat sai huong.
     X_seq = np.zeros((len(valid_idx), window, n_features), dtype=np.float32)
     y_ret_seq = np.zeros((len(valid_idx), horizon, 1), dtype=np.float32)
     close_anchor = np.zeros(len(valid_idx), dtype=np.float32)
     target_dates = []
     anchor_dates = []
     for k, i in enumerate(valid_idx):
+        # Input: 60 ngay ket thuc tai ngay i.
         X_seq[k] = X_full[i - window + 1: i + 1]
+        # Target: returns cua 14 ngay sau anchor i.
         future_returns = df["returns"].iloc[i + 1: i + 1 + horizon].values.astype(np.float32)
         y_ret_seq[k, :, 0] = future_returns
         close_anchor[k] = df["close"].iloc[i]
@@ -176,6 +192,7 @@ def build_dl_sequences(df: pd.DataFrame, feat_cols: list, window: int, horizon: 
     )
 
     ml_split_idx = int(valid_idx[n_train]) if n_train < len(valid_idx) else int(valid_idx[-1])
+    # Tra ve them SplitData de ML va DL dung cung moc thoi gian so sanh.
     split = prepare_ml_split(df, feat_cols, train_ratio, split_idx=ml_split_idx)
     return dl, split
 
@@ -183,6 +200,8 @@ def build_dl_sequences(df: pd.DataFrame, feat_cols: list, window: int, horizon: 
 def prepare_dl_pipeline(ticker: str, macro_df: pd.DataFrame,
                         window: int = 60, horizon: int = 14,
                         train_ratio: float = 0.85) -> tuple[DLData, SplitData]:
+    # Pipeline day du cho mot ma: tai gia -> tao feature -> tao target ML ->
+    # bo NaN do rolling/shift -> tao du lieu DL va ML split.
     stock = load_stock(ticker)
     feats = compute_features(stock, macro_df, ticker=ticker)
     feats = make_targets(feats)

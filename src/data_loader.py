@@ -23,16 +23,23 @@ MACRO_LABELS = {
 
 
 def _fetch(symbol: str, start: str) -> pd.DataFrame:
+    # Tai du lieu gia tu Yahoo Finance. auto_adjust=True giup gia OHLC da
+    # duoc dieu chinh theo chia co tuc/split, nen phu hop hon khi hoc tu lich su.
     df = yf.download(symbol, start=start, progress=False, auto_adjust=True)
     if df.empty:
         raise RuntimeError(f"No data for {symbol} from {start}")
+    # yfinance tra ve Date la index; reset_index dua Date thanh cot de cac
+    # buoc sau co the merge theo ngay giao dich.
     df = df.reset_index()
+    # Chuan hoa ten cot ve chu thuong: Date -> date, Close -> close, ...
+    # Neu yfinance tra MultiIndex cot, lay level dau tien roi chuyen chu thuong.
     df.columns = [c.lower() if isinstance(c, str) else c[0].lower() for c in df.columns]
     df["date"] = pd.to_datetime(df["date"])
     return df
 
 
 def load_stock(ticker: str, refresh: bool = False) -> pd.DataFrame:
+    # Cache parquet giup lan chay sau doc tu dia thay vi tai lai qua mang.
     STOCKS_DIR.mkdir(parents=True, exist_ok=True)
     path = STOCKS_DIR / f"{ticker}.parquet"
     if path.exists() and not refresh:
@@ -47,6 +54,8 @@ def load_spy(refresh: bool = False) -> pd.DataFrame:
 
 
 def load_macro(symbol: str, refresh: bool = False) -> pd.DataFrame:
+    # Du lieu vi mo nhu VIX, lai suat 10 nam, dau, USD duoc luu rieng trong
+    # data/raw/macro voi ten ngan gon de de ghep feature.
     MACRO_DIR.mkdir(parents=True, exist_ok=True)
     label = MACRO_LABELS[symbol]
     path = MACRO_DIR / f"{label}.parquet"

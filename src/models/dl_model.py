@@ -44,6 +44,7 @@ from src.preprocessing import DLData
 
 
 def set_seed(seed: int = 42) -> None:
+    # Dat seed de ket qua train lap lai tot hon giua cac lan chay.
     random.seed(seed)
     np.random.seed(seed)
     tf.random.set_seed(seed)
@@ -54,8 +55,12 @@ def make_directional_loss(penalty: float):
     penalty_f = float(penalty)
 
     def directional_loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+        # err2 la sai so binh phuong thong thuong cua bai toan hoi quy.
         err2 = tf.square(y_true - y_pred)
+        # opposite=True khi model du doan sai huong tang/giam.
         opposite = tf.less(tf.sign(y_true) * tf.sign(y_pred), 0.0)
+        # Neu sai huong, nhan loss len penalty lan de model uu tien hoc dau +/-
+        # cua return, khong chi hoc gan gia tri trung binh.
         weight = tf.where(opposite, penalty_f, 1.0)
         return tf.reduce_mean(weight * err2)
 
@@ -72,6 +77,8 @@ def make_bounded_return(cap: float):
     cap_f = float(cap)
 
     def bounded_return(x: tf.Tensor) -> tf.Tensor:
+        # tanh gioi han dau ra trong [-1, 1], nhan cap=0.05 de return moi
+        # ngay nam trong khoang xap xi [-5%, +5%].
         return tf.tanh(x) * cap_f
 
     return bounded_return
@@ -93,21 +100,30 @@ def build_seq2seq_attention(
 
     inputs = Input(shape=(window, n_features), name="encoder_input")
 
+    # Conv1D nhin cac mau cuc bo tren chuoi 60 ngay, giong bo loc phat hien
+    # bien dong ngan han trong feature.
     x = Conv1D(cfg["conv_filters_1"], 3, padding="same", activation="relu", name="conv1")(inputs)
     x = BatchNormalization(name="bn1")(x)
     x = Dropout(dropout_rate, name="drop1")(x)
 
     x = Conv1D(cfg["conv_filters_2"], 3, padding="same", activation="relu", name="conv2")(x)
 
+    # BiLSTM doc chuoi theo hai chieu trong window lich su de ma hoa boi canh
+    # qua khu thanh enc_seq.
     enc_seq = Bidirectional(
         LSTM(cfg["bilstm_units"], return_sequences=True), name="bilstm"
     )(x)
 
+    # Lay hidden state cuoi lam tom tat cua 60 ngay input.
     enc_last = Lambda(lambda t: t[:, -1, :], name="enc_last")(enc_seq)
 
+    # Decoder can tao 14 buoc output, nen RepeatVector nhan ban tom tat
+    # encoder thanh 14 vector dau vao cho LSTM decoder.
     dec_input = RepeatVector(horizon, name="repeat")(enc_last)
     dec_seq = LSTM(cfg["decoder_lstm_units"], return_sequences=True, name="decoder_lstm")(dec_input)
 
+    # Attention cho moi buoc du bao nhin lai toan bo enc_seq, giup model tap
+    # trung vao nhung ngay lich su co lien quan hon.
     context = Attention(name="attention")([dec_seq, enc_seq])
     merged = Concatenate(name="concat")([dec_seq, context])
 
@@ -156,6 +172,8 @@ def train_dl(dl: DLData, verbose: int = 0) -> tuple:
         batch_size=cfg["batch_size"],
         callbacks=callbacks,
         verbose=verbose,
+        # shuffle=False bat buoc voi chuoi thoi gian: khong tron thu tu lich su
+        # khi cat validation_split phan cuoi cua train.
         shuffle=False,
     )
 

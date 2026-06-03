@@ -83,6 +83,8 @@ def _build_weights(signal: pd.DataFrame, top_k: int, threshold: float) -> pd.Dat
     weights = pd.DataFrame(0.0, index=signal.index, columns=signal.columns)
     w_unit = 1.0 / top_k
     for date, row in signal.iterrows():
+        # Chi mua cac ma co tin hieu du bao vuot nguong. Neu khong co ma nao
+        # dat nguong thi portfolio giu tien mat.
         eligible = row[row > threshold].dropna()
         if eligible.empty:
             continue
@@ -113,11 +115,16 @@ def run_topk_daily(signal: pd.DataFrame,
 
     signal_aligned = signal.reindex(prices.index).ffill(limit=1)
     weights_today = _build_weights(signal_aligned, cfg.top_k, cfg.threshold)
+    # Shift 1 ngay de tranh look-ahead bias: tin hieu ngay t chi duoc dung
+    # de nam giu vi the tu ngay t+1.
     positions = weights_today.shift(1).fillna(0.0)
 
+    # Loi suat tung ma moi ngay, roi cong theo trong so portfolio.
     rets = prices.pct_change().fillna(0.0)
     gross_ret = (positions * rets).sum(axis=1)
 
+    # Chi phi giao dich ti le voi muc thay doi trong so. Doi tu 0 len 20%
+    # hay tu 20% ve 0 deu tao turnover va bi tru cost.
     weight_diff = positions.diff().abs().fillna(positions.abs())
     volume = weight_diff.sum(axis=1)
     cost = cfg.cost_per_trade * volume
@@ -232,6 +239,8 @@ def compute_metrics(daily_returns: pd.Series,
                 "hit_rate": 0.0, "avg_turnover": 0.0,
                 "alpha_vs_bench": None, "tstat_alpha": None}
 
+    # Cac metric tai chinh co ban: loi nhuan tong, loi nhuan nam hoa,
+    # volatility nam hoa, Sharpe, drawdown, hit rate.
     total_ret = float(equity.iloc[-1] - 1.0)
     ann_ret = float(r.mean() * annualization)
     ann_vol = float(r.std() * np.sqrt(annualization))

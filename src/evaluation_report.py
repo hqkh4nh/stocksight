@@ -26,12 +26,17 @@ def extended_reg_metrics(y_true: np.ndarray, y_pred: np.ndarray,
     y_true = np.asarray(y_true).ravel()
     y_pred = np.asarray(y_pred).ravel()
 
+    # MAE/RMSE do sai so ve do lon return. MAE de hieu hon, RMSE phat nang
+    # cac loi du doan lon.
     mae = float(mean_absolute_error(y_true, y_pred))
     rmse = float(np.sqrt(mean_squared_error(y_true, y_pred)))
     r2 = float(r2_score(y_true, y_pred))
 
+    # Directional accuracy chi hoi: du doan dung huong tang/giam khong?
     dir_acc = float((np.sign(y_pred) == np.sign(y_true)).mean())
 
+    # Residual = gia tri that - du doan. Do lech, skew, kurtosis giup xem loi
+    # co on dinh hay co duoi day/outlier.
     residuals = y_true - y_pred
     res_std = float(residuals.std())
     res_skew = float(stats.skew(residuals)) if residuals.size > 2 else 0.0
@@ -71,6 +76,7 @@ def dl_extended_metrics(model, dl, history) -> dict:
     """Full DL evaluation: aggregate price MAE/RMSE/MAPE, per-horizon, directional, and
     train/val loss snapshot from history.history.
     """
+    # DL du doan 14 return moi anchor. Sau do quy doi thanh gia de tinh MAE gia.
     pred_returns = model.predict(dl.X_test_seq, verbose=0)            # (N, 14, 1)
     true_returns = dl.y_return_seq_test                               # (N, 14, 1)
 
@@ -93,6 +99,7 @@ def dl_extended_metrics(model, dl, history) -> dict:
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
 
+    # Tich luy 14 ngay: (1+r1)*(1+r2)*...*(1+r14)-1.
     cum_pred = np.prod(1 + pred_returns[..., 0], axis=1) - 1
     cum_true = np.prod(1 + true_returns[..., 0], axis=1) - 1
     long_dir_acc = float(((cum_pred > 0) == (cum_true > 0)).mean())
@@ -148,5 +155,6 @@ def dl_test_predictions_long(model, dl) -> dict:
 
 def _returns_to_prices(close_anchor: np.ndarray, returns_seq: np.ndarray) -> np.ndarray:
     """Convert (N, H) returns to (N, H) prices given anchor close[N]."""
+    # Gia ngay k = gia anchor * tich luy cac (1 + return) tu ngay 1 den k.
     cum = np.cumprod(1 + returns_seq, axis=1)
     return close_anchor[:, None] * cum

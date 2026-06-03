@@ -65,6 +65,8 @@ def _load_dl_model(ticker: str):
 
 
 def _predict_ml_returns(ticker: str, model_name: str, horizon: int) -> np.ndarray:
+    # Lay dong feature moi nhat lam diem bat dau forecast. ML chi du doan
+    # 1-ngay, nen recursive_forecast_14 se lap nhieu buoc va cap nhat lag.
     feats = load_features_cached(ticker)
     feat_cols = feature_columns(ticker)
     last_row = feats[feat_cols].iloc[-1].values.astype(float)
@@ -75,6 +77,8 @@ def _predict_ml_returns(ticker: str, model_name: str, horizon: int) -> np.ndarra
 
 
 def _predict_dl_returns(ticker: str, horizon: int) -> np.ndarray:
+    # DL can ca window 60 ngay gan nhat vi model duoc train voi input dang
+    # chuoi (60, n_features), khac voi ML chi can 1 dong feature.
     feats = load_features_cached(ticker)
     feat_cols = feature_columns(ticker)
     window = 60
@@ -84,6 +88,7 @@ def _predict_dl_returns(ticker: str, horizon: int) -> np.ndarray:
     scaler = _ensure_dl_scaler(ticker)
     X = scaler.transform(last_window).reshape(1, window, -1)
     model = _load_dl_model(ticker)
+    # Model tra ve toi da 14 return; cat theo horizon nguoi dung chon.
     pred = model.predict(X, verbose=0)  # (1, 14, 1)
     returns = pred.reshape(-1)[:horizon]
     return returns
@@ -114,6 +119,8 @@ def cum_return(returns: np.ndarray) -> float:
 
 def recommendation(cum_ret: float, threshold: float) -> dict:
     """Map cumulative return → BUY / HOLD / SELL + confidence in [0, 1]."""
+    # Nguong lay tu config/backtest. Vuot nguong duong -> BUY, vuot nguong
+    # am -> SELL, nam giua -> HOLD de tranh giao dich khi tin hieu yeu.
     if cum_ret > threshold:
         action = "BUY"
     elif cum_ret < -threshold:

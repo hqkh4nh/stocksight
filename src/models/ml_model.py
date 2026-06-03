@@ -11,6 +11,8 @@ from src.preprocessing import SplitData
 
 
 def train_ridge(split: SplitData):
+    # Ridge la hoi quy tuyen tinh co regularization L2. No phu hop lam mo
+    # hinh nen vi don gian, it overfit hon linear regression thuong.
     p = CFG["ml"]["ridge"]
     model = Ridge(alpha=p["alpha"], random_state=42)
     model.fit(split.X_train, split.y_return_train)
@@ -20,6 +22,8 @@ def train_ridge(split: SplitData):
 
 
 def train_rf_reg(split: SplitData):
+    # Random Forest gom nhieu cay quyet dinh. Moi cay hoc mot phan du lieu,
+    # ket qua cuoi la trung binh, giup bat quan he phi tuyen.
     p = CFG["ml"]["random_forest"]
     model = RandomForestRegressor(
         n_estimators=p["n_estimators"], max_depth=p["max_depth"],
@@ -33,6 +37,8 @@ def train_rf_reg(split: SplitData):
 
 
 def train_xgb_reg(split: SplitData):
+    # XGBoost la gradient boosting: cay sau hoc cach sua loi cua cay truoc.
+    # Thuong manh tren du lieu bang nhieu feature.
     p = CFG["ml"]["xgboost"]
     model = XGBRegressor(
         n_estimators=p["n_estimators"], max_depth=p["max_depth"],
@@ -48,6 +54,8 @@ def train_xgb_reg(split: SplitData):
 
 
 def save_ml_models(ticker: str, ridge, rf_reg, xgb_reg, scaler_X):
+    # Luu ca model va scaler. Khi du bao live, input moi phai scale bang dung
+    # scaler da fit tren train, neu khong prediction se sai thang do.
     joblib.dump(ridge, MODELS_DIR / f"{ticker}_ridge.pkl")
     joblib.dump(rf_reg, MODELS_DIR / f"{ticker}_rf_reg.pkl")
     joblib.dump(xgb_reg, MODELS_DIR / f"{ticker}_xgb_reg.pkl")
@@ -68,6 +76,8 @@ def recursive_forecast_14(model, last_features_row: np.ndarray, feat_cols: list 
     preds = []
 
     if feat_cols is None:
+        # Che do cu: lap lai cung mot dong feature, khong cap nhat lag. Giu
+        # lai de tuong thich voi test/code cu.
         feat = feat_raw.reshape(1, -1)
         for _ in range(horizon):
             preds.append(float(model.predict(feat)[0]))
@@ -77,12 +87,16 @@ def recursive_forecast_14(model, last_features_row: np.ndarray, feat_cols: list 
     recent = [feat_raw[idx["close_pct_lag_1"]]] * 5 if "close_pct_lag_1" in idx else [0.0] * 5
 
     for _ in range(horizon):
+        # Moi buoc du bao 1 ngay return. Neu co scaler thi transform feature
+        # raw sang cung thang do voi luc train.
         x = feat_raw.reshape(1, -1)
         if scaler_X is not None:
             x = scaler_X.transform(x)
         r_pred = float(model.predict(x)[0])
         preds.append(r_pred)
 
+        # Feeding back: return du bao cua hom nay tro thanh feature lag cho
+        # buoc ngay mai. Cac feature phuc tap hon nhu RSI/MACD duoc giu nguyen.
         recent.append(r_pred)
         recent = recent[-5:]
 

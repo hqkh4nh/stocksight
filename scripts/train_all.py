@@ -69,8 +69,11 @@ def train_one_ticker(ticker: str, macro_df: pd.DataFrame) -> dict:
 
     tf.keras.backend.clear_session()
     t0 = time.time()
+    # Tao du lieu cho ca DL va ML. Hai nhom model dung chung feature va moc
+    # thoi gian split de ket qua co the so sanh cong bang.
     dl, split = prepare_dl_pipeline(ticker, macro_df)
 
+    # Train 3 model ML hoi quy 1-ngay.
     ridge, ridge_test, ridge_val = train_ridge(split)
     rf_reg, rf_test, rf_val = train_rf_reg(split)
     xgb_reg, xgb_test, xgb_val = train_xgb_reg(split)
@@ -81,6 +84,8 @@ def train_one_ticker(ticker: str, macro_df: pd.DataFrame) -> dict:
     naive_zero_mae_test = float(np.abs(split.y_return_test - naive_zero_test).mean())
     naive_zero_mae_val = float(np.abs(split.y_return_val - naive_zero_val).mean())
 
+    # Baseline dung de tra loi cau hoi: model co tot hon cach doan don gian
+    # "ngay mai return = 0" hoac "ngay mai giong hom nay" khong?
     ml_results = {
         "ridge": (ridge_val, ridge_test),
         "rf_reg": (rf_val, rf_test),
@@ -92,6 +97,7 @@ def train_one_ticker(ticker: str, macro_df: pd.DataFrame) -> dict:
     ml_metrics = {}
     ml_pred_rows = []
     for name, (yv, yt) in ml_results.items():
+        # extended_reg_metrics tinh ca sai so va do chinh xac huong tang/giam.
         m_test = extended_reg_metrics(split.y_return_test, yt, naive_zero_mae=naive_zero_mae_test)
         m_val = extended_reg_metrics(split.y_return_val, yv, naive_zero_mae=naive_zero_mae_val)
         ml_metrics[name] = {
@@ -104,6 +110,8 @@ def train_one_ticker(ticker: str, macro_df: pd.DataFrame) -> dict:
 
     pd.DataFrame(ml_pred_rows).to_parquet(PREDICTIONS_DIR / f"{ticker}_ml.parquet", index=False)
 
+    # Train DL seq2seq du doan 14-ngay return lien tiep va luu duong du bao
+    # de backtest/Streamlit co the doc lai.
     dl_model, hist = train_dl(dl, verbose=0)
     save_dl_model(ticker, dl_model)
     save_dl_history(ticker, hist)

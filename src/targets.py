@@ -8,6 +8,9 @@ def make_targets(df: pd.DataFrame) -> pd.DataFrame:
     not stored as columns, because horizon may change.
     """
     df = df.copy()
+    # y_return la bien can du doan cho ML: loi suat ngay mai so voi hom nay.
+    # shift(-1) lay close cua ngay tiep theo, vi vay dong cuoi se thanh NaN
+    # va duoc dropna o pipeline sau do.
     df["y_return"] = df["close"].shift(-1) / df["close"] - 1
     return df
 
