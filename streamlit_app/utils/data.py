@@ -88,8 +88,8 @@ def load_predictions_dl() -> pd.DataFrame:
     df["target_date"] = pd.to_datetime(df["target_date"])
     import numpy as np
     if "calibrated" not in df.columns and "y_true_return" in df.columns:
-        y_pred = df["y_pred_return"].values
-        y_true = df["y_true_return"].values
+        y_pred = df["y_pred_return"].values.copy()
+        y_true = df["y_true_return"].values.copy()
         stride = 12
         for i in range(0, len(y_pred), stride):
             t_val = y_true[i]
